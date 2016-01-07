@@ -9,8 +9,9 @@ class HttpGeneratorClient : public Application
         Ptr<Packet> p = Create<Packet> (m_size.GetIntValue ());
     
         m_socket->Send (p);
-    }
-    
+    } 
+
+
 
     virtual void StopApplication (void) {
 
