@@ -2,9 +2,9 @@
 
 
 void 
-G711Generator::SetRate (Datarate datarate)
+G711Generator::SetRate (double rate)
 {
-	rate = datarate;
+	tbPkts = 1/rate;
 }
 
 void 
@@ -29,8 +29,8 @@ G711Generator::SetRemote (std::string socketType,
 void
 G711Generator::DoGenerate (void)
 {
-  m_next = Simulator::Schedule (Seconds (m_delay.GetValue ()), 
+  m_next = Simulator::Schedule (Seconds (tbPkts), 
                 &RandomGenerator::DoGenerate, this);
-  Ptr<Packet> p = Create<Packet> (m_size.GetIntValue ());
+  Ptr<Packet> p = Create<Packet> (sizePkt);
   m_socket->Send (p);
 }
