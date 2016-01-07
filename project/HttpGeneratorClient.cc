@@ -21,9 +21,9 @@ NS_OBJECT_ENSURE_REGISTERED (HttpGeneratorClient);
 TypeId
 HttpGeneratorClient::GetTypeId (void)
 {
-  static TypeId tid = TypeId ("ns3::HttpGeneratorClien")
+  static TypeId tid = TypeId ("ns3::HttpGeneratorClient")
     .SetParent<Application> ()
-    .AddConstructor<HttpGeneratorClien> ()
+    .AddConstructor<HttpGeneratorClient> ()
     .AddAttribute ("SendSize", "The amount of data to send each time.",
                    UintegerValue (512),
                    MakeUintegerAccessor (&HttpGeneratorClient::m_sendSize),
