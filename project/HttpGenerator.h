@@ -1,14 +1,16 @@
-class HttpGenerator : public Application
+class HttpGeneratorClient : public Application
 {
   public:
 
   private:
-    //Private attributes
-
-    //Private methods
-    virtual void StartApplication (void) {
-
+    virtual void StartApplication (void){
+        Simulator::Schedule (Seconds (m_delay.GetValue ()), 
+                    &RandomGenerator::DoGenerate, this);
+        Ptr<Packet> p = Create<Packet> (m_size.GetIntValue ());
+    
+        m_socket->Send (p);
     }
+    
 
     virtual void StopApplication (void) {
 

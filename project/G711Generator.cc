@@ -27,7 +27,7 @@ G711Generator::SetRemote (std::string socketType,
 
 
 void
-RandomGenerator::DoGenerate (void)
+G711Generator::DoGenerate (void)
 {
   m_next = Simulator::Schedule (Seconds (m_delay.GetValue ()), 
                 &RandomGenerator::DoGenerate, this);
