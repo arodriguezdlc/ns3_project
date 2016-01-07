@@ -2,7 +2,7 @@ class G711Generator : public Application
 {
 public:
   G711Generator ();
-  void SetRate (Datarate datarate);
+  void SetRate (double rate);
   void SetSize (uint32_t size);
   void SetRemote (std::string socketType, 
                   Address remote);
@@ -22,8 +22,8 @@ private:
   }
   
   void DoGenerate (void);
-
-  Datarate rate = DataRate("68.8kbps");
-  uint32_t  sizePkt = 172;
+  
+  double    tbPkts = 0.02; //Por defecto son 50 pps
+  uint32_t  sizePkt = 172; //Payload+RTP
   Ptr<Socket> m_socket;
 };
