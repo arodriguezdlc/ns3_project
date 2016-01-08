@@ -63,7 +63,7 @@ int main (int argc, char *argv[])
 
 
     //HERE WE HAVE TO INSTALL SERVER APP
-	PacketSinkHelper sink ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), port));
+	PacketSinkHelper sink ("ns3::UdpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), port));
 	ApplicationContainer sinkApp = sink.Install (nodes.Get (1));
 	sinkApp.Start (Seconds (1.0));
 	sinkApp.Stop (Seconds (10.0));
