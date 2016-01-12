@@ -10,6 +10,8 @@
 #include "ns3/point-to-point-module.h"
 #include "ns3/ipv4-global-routing-helper.h"
 
+#include "G711Generator"
+
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE ("simulation");
@@ -60,6 +62,13 @@ int main (int argc, char *argv[])
     uint_16_t port = 9;
 
 	//HERE WE HAVE TO INSTALL CLIENT APP
+    G711Generator codec();
+    ApplicationContainer G711_1 = codec.Install(nodes.Get(0));
+    
+    codec.SetRemote("ns3::UdpSocketFactory",
+                                 
+    	);
+
 
 
     //HERE WE HAVE TO INSTALL SERVER APP
