@@ -10,7 +10,10 @@
 #include "ns3/point-to-point-module.h"
 #include "ns3/ipv4-global-routing-helper.h"
 
-#include "G711Generator"
+#include "ns3/ipv4-interface-container.h"
+
+
+#include "G711Generator.h"
 
 using namespace ns3;
 
@@ -54,25 +57,24 @@ int main (int argc, char *argv[])
 
 	Ipv4AddressHelper ipv4;
 	ipv4.SetBase ("10.1.1.0", "255.255.255.0");
-	ipv4InterfaceContainer interfaces = ipv4.Assign (devices);
+	Ipv4InterfaceContainer interfaces = ipv4.Assign (devices);
+
 
 	/******************************
 	* Applications installation   *
 	*******************************/
-    uint_16_t port = 9;
+    uint16_t port = 9;
+	Ipv4Address serverAddress =  Ipv4Address::GetAny ();
+
 
 	//HERE WE HAVE TO INSTALL CLIENT APP
-    G711Generator codec();
+    G711Generator codec("ns3::UdpSocketFactory",serverAddress);
     ApplicationContainer G711_1 = codec.Install(nodes.Get(0));
-    
-    codec.SetRemote("ns3::UdpSocketFactory",
-                                 
-    	);
 
 
 
     //HERE WE HAVE TO INSTALL SERVER APP
-	PacketSinkHelper sink ("ns3::UdpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), port));
+	PacketSinkHelper sink ("ns3::UdpSocketFactory", InetSocketAddress (serverAddress, port));
 	ApplicationContainer sinkApp = sink.Install (nodes.Get (1));
 	sinkApp.Start (Seconds (1.0));
 	sinkApp.Stop (Seconds (10.0));
@@ -84,7 +86,7 @@ int main (int argc, char *argv[])
 	**************************/
 
 	Simulator::Run();
-	Simulation::Destroy ();
+	Simulator::Destroy ();
 
 
 }
