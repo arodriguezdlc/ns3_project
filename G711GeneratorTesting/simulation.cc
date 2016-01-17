@@ -69,7 +69,8 @@ int main (int argc, char *argv[])
 
 	//HERE WE HAVE TO INSTALL CLIENT APP
     G711Generator codec("ns3::UdpSocketFactory",serverAddress);
-    ApplicationContainer G711_1 = codec.Install(nodes.Get(0));
+    
+    nodes.Get(0)->AddApplication(&codec);
 
 
 
