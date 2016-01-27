@@ -31,7 +31,7 @@ private:
   virtual void StopApplication (void);     // Called at time specified by Stop
 
   void SendData ();
-
+  void Request ();
 
 
   Ptr<Socket>     m_socket;       //!< Associated socket
@@ -41,7 +41,9 @@ private:
   uint32_t        m_maxBytes;     //!< Limit total number of bytes sent
   uint32_t        m_totBytes;     //!< Total bytes sent so far
   TypeId          m_tid;          //!< The type of protocol to use.
+  double          m_requestRate;  //!< Request rate (per minute) of Http Client.
 
+  Ptr<ExponentialRandomVariable> m_timeBetweenRequests;
   /// Traced Callback: sent packets
   TracedCallback<Ptr<const Packet> > m_txTrace;
 
@@ -55,37 +57,3 @@ private:
 } // namespace ns3
 
 #endif /* HTTP_GENERATOR_CLIENT_APPLICATION_H */
-
-
-
-
-
-
-
-
-//MUST TO BE DELETED IN THE FUTURE!
-
-class HttpGeneratorClient : public Application
-{
-  public:
-
-  private:
-    virtual void StartApplication (void){
-        Simulator::Schedule (Seconds (m_delay.GetValue ()), 
-                    &RandomGenerator::DoGenerate, this);
-        Ptr<Packet> p = Create<Packet> (m_size.GetIntValue ());
-    
-        m_socket->Send (p);
-    } 
-
-
-
-    virtual void StopApplication (void) {
-
-    }
-
-    void DoGenerate (void) {
-
-    }
-
-};

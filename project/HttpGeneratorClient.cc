@@ -7,8 +7,10 @@
 #include "ns3/socket-factory.h"
 #include "ns3/packet.h"
 #include "ns3/uinteger.h"
+#include "ns3/double.h"
 #include "ns3/trace-source-accessor.h"
 #include "ns3/tcp-socket-factory.h"
+#include "ns3/random-variable-stream.h"
 #include "HttpGeneratorClient.h"
 
 
@@ -44,8 +46,12 @@ HttpGeneratorClient::GetTypeId (void)
                    TypeIdValue (TcpSocketFactory::GetTypeId ()),
                    MakeTypeIdAccessor (&HttpGeneratorClient::m_tid),
                    MakeTypeIdChecker ())
+    .AddAttribute ("RequestRate", "Request rate (per minute) of Http Client.",
+                   DoubleValue (30),
+                   MakeDoubleAccessor (&HttpGeneratorClient::m_requestRate),
+                   MakeDoubleChecker<double> ())
     .AddTraceSource ("Tx", "A new packet is created and is sent",
-                     MakeTraceSourceAccessor (&HttpGeneratorClient::m_txTrace))
+                   MakeTraceSourceAccessor (&HttpGeneratorClient::m_txTrace))
   ;
   return tid;
 }
@@ -57,6 +63,9 @@ HttpGeneratorClient::HttpGeneratorClient ()
     m_totBytes (0)
 {
   NS_LOG_FUNCTION (this);
+  double mean = 60/m_requestRate; //reques
+  m_timeBetweenRequests = CreateObject<ExponentialRandomVariable> ();
+  m_timeBetweenRequests->SetAttribute ("Mean", DoubleValue (mean));
 }
 
 HttpGeneratorClient::~HttpGeneratorClient ()
@@ -116,24 +125,28 @@ void HttpGeneratorClient::StartApplication (void) // Called at time specified by
           m_socket->Bind ();
         }
 
-      m_socket->Connect (m_peer);
-      m_socket->ShutdownRecv ();
+      //m_socket->Connect (m_peer);
+      //m_socket->ShutdownRecv ();
       m_socket->SetConnectCallback (
         MakeCallback (&HttpGeneratorClient::ConnectionSucceeded, this),
         MakeCallback (&HttpGeneratorClient::ConnectionFailed, this));
       m_socket->SetSendCallback (
         MakeCallback (&HttpGeneratorClient::DataSend, this));
     }
+  /*
   if (m_connected)
     {
       SendData ();
     }
+  */
+
+  //Programing first request
+  Simulator::Schedule (Simulator::Now (), &HttpGeneratorClient::Request, this);
 }
 
 void HttpGeneratorClient::StopApplication (void) // Called at time specified by Stop
 {
   NS_LOG_FUNCTION (this);
-
   if (m_socket != 0)
     {
       m_socket->Close ();
@@ -146,8 +159,25 @@ void HttpGeneratorClient::StopApplication (void) // Called at time specified by 
 }
 
 
+
+
 // Private helpers
 
+void HttpGeneratorClient::Request () 
+{
+  NS_LOG_FUNCTION (this);
+  m_socket->Connect (m_peer);
+  if (m_connected) 
+    {
+      SendData ();
+    }
+  else 
+    {
+      NS_LOG_ERROR ("HttpClient can't connect to server");
+    }
+}
+
+/* SEND DATA UNTIL MAX BYTES */
 void HttpGeneratorClient::SendData (void)
 {
   NS_LOG_FUNCTION (this);
@@ -181,6 +211,8 @@ void HttpGeneratorClient::SendData (void)
     {
       m_socket->Close ();
       m_connected = false;
+      //Schedule next request
+       Simulator::Schedule (Seconds(m_timeBetweenRequests->GetValue()), &HttpGeneratorClient::Request, this);
     }
 }
 
@@ -201,7 +233,6 @@ void HttpGeneratorClient::ConnectionFailed (Ptr<Socket> socket)
 void HttpGeneratorClient::DataSend (Ptr<Socket>, uint32_t)
 {
   NS_LOG_FUNCTION (this);
-
   if (m_connected)
     { // Only send new data if the connection has completed
       Simulator::ScheduleNow (&HttpGeneratorClient::SendData, this);
