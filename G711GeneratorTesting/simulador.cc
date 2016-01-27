@@ -69,7 +69,6 @@ int main (int argc, char *argv[])
 
 	//HERE WE HAVE TO INSTALL CLIENT APP
     G711Generator codec("ns3::UdpSocketFactory",serverAddress);
-    
     nodes.Get(0)->AddApplication(&codec);
 
 
@@ -89,5 +88,5 @@ int main (int argc, char *argv[])
 	Simulator::Run();
 	Simulator::Destroy ();
 
-
+return 0;
 }

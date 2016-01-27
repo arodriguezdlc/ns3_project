@@ -1,88 +1,94 @@
-/*
-*	Simulation to test HttpGeneratorClient and Server in a simple point to
-*   point escenary
-*/
+/* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 
-#include "ns3/core-module.h"
-#include "ns3/applications-module.h"
-#include "ns3/network-module.h"
-#include "ns3/internet-module.h"
-#include "ns3/point-to-point-module.h"
-#include "ns3/ipv4-global-routing-helper.h"
-#include "HttpGeneratorClientHelper.h"
-#include "HttpGeneratorClient.h"
+#include <ns3/core-module.h>
+#include <ns3/node.h>
+#include <ns3/point-to-point-net-device.h>
+#include <ns3/point-to-point-channel.h>
+#include <ns3/drop-tail-queue.h>
+#include "BitAlternante.h"
+
+
 
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE ("simulation");
 
-int main (int argc, char *argv[]) 
+
+int
+main (int argc, char *argv[])
 {
+  Time::SetResolution (Time::MS);
 
-	//Default values
-	DataRate datarate("100Mbps");
-	uint32_t requestSize = 100;
-	uint32_t responseSize = 10000;
-	Time     delay("5ms");
-        bool     tracing = true;
+  // Parametros de la simulacion
 
-	//Command line parsing
-	CommandLine cmd;
-        cmd.AddValue ("tracing", "flag to enable/disable pcap tracing", tracing);
-	cmd.AddValue ("datarate", "datarate for point to point link", datarate);
-	cmd.AddValue ("requestSize", "size of Http request in bytes", requestSize);
-	cmd.AddValue ("responseSize", "size of Http response in bytes", responseSize);
-	cmd.AddValue ("delay", "channel delay", delay);
-	cmd.Parse (argc, argv);
+  uint32_t nG711 = 2;
+  uint32_t nHttpClient = 3;
 
-	/*********************
-	* Scenary creation   *
-	**********************/
+  // Preparar los parametros
 
-	//Creating 2 nodes (client and server)
-	NodeContainer nodes;
-	nodes.Create (2);
+  cmd.AddValue ("G711", "Número de nodos VoIP", nG711);
+  cmd.AddValue ("HttpClient", "Número de nodos cliente HTTP", nHttpClient);
+  cmd.Parse (argc,argv);
 
-	PointToPointHelper pointToPoint;
-	pointToPoint.SetDeviceAttribute ("DataRate", DataRateValue(datarate));
-	pointToPoint.SetChannelAttribute ("Delay", TimeValue(delay));
+  // Componentes del escenario:
+ 
+  NodeContainer G711Nodes;
+  G771Nodes.create(nG711);
+  NodeContainer HttpClientNodes;
+  HttpClientNodes.create(nHttpClient);
 
-	NetDeviceContainer devices;
-	devices = pointToPoint.Install (nodes);
+  // Creamos las aplicaciones
+  // Aplicacion para VoIP
 
-	//Install the internet stack on the nodes
-	InternetStackHelper internet;
-	internet.Install (nodes);
+  G711Generator AplicationVoIP();
 
-	Ipv4AddressHelper ipv4;
-	ipv4.SetBase ("10.1.1.0", "255.255.255.0");
-	Ipv4InterfaceContainer interfaces = ipv4.Assign (devices);
+  // Aplicacion para cliente Http
 
-	/******************************
-	* Applications installation   *
-	*******************************/
-    uint16_t port = 9;
+  HttpGeneratorClient AplicationHttpClient();
 
-	//HERE WE HAVE TO INSTALL CLIENT APP
-        HttpGeneratorClientHelper httpClient ("ns3::TcpSocketFactory", InetSocketAddress (interfaces.GetAddress (1), port));        
-        ApplicationContainer httpClientApps = httpClient.Install (nodes.Get (0));
-	httpClientApps.Start (Seconds(1.0));
-        httpClientApps.Stop  (Seconds(10.0)); 
+  // Apliacion para servidor Http
 
-    //HERE WE HAVE TO INSTALL SERVER APP
-	PacketSinkHelper sink ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), port));
-	ApplicationContainer sinkApp = sink.Install (nodes.Get (1));
-	sinkApp.Start (Seconds (1.0));
-	sinkApp.Stop  (Seconds (10.0));
+  HttpGeneratorServer AplicationHttpServer();
 
-	if (tracing) {
-	   pointToPoint.EnablePcapAll ("httpGenerator");
-        }
-	/*************************
-	* Simulation execution   *
-	**************************/
+  //*********************************************************************************************************************
 
-	Simulator::Run();
-	Simulator::Destroy ();
+  // Dos dispositivos de red
+  Ptr<PointToPointNetDevice> dispTx = CreateObject<PointToPointNetDevice> ();
+  Ptr<PointToPointNetDevice> dispRx = CreateObject<PointToPointNetDevice> ();
+  // Un canal punto a punto
+  Ptr<PointToPointChannel> canal = CreateObject<PointToPointChannel> ();;
+  // Una aplicación transmisora
+  BitAlternanteTx transmisor(dispRx, Time("10ms"), 2048);
+  // Y una receptora
+  BitAlternanteRx receptor(dispTx);
 
+  // Montamos el escenario:
+  // Añadimos una cola a cada dispositivo
+  dispTx->SetQueue (CreateObject<DropTailQueue> ());
+  dispRx->SetQueue (CreateObject<DropTailQueue> ());
+  // Añadimos cada dispositivo a su nodo
+  nodoTx->AddDevice (dispTx);
+  nodoRx->AddDevice (dispRx);
+  // Añadimos cada aplicación a su nodo
+  nodoTx->AddApplication(&transmisor);
+  nodoRx->AddApplication(&receptor);
+  // Asociamos los dos dispositivos al canal
+  dispTx->Attach (canal);
+  dispRx->Attach (canal);
+  
+  // Modificamos los parámetos configurables
+  canal->SetAttribute ("Delay", StringValue ("2ms"));
+  dispTx->SetAttribute ("DataRate", StringValue ("5Mbps"));
+
+  // Activamos el transmisor
+  transmisor.SetStartTime (Seconds (1.0));
+  transmisor.SetStopTime (Seconds (10.0));
+
+  NS_LOG_UNCOND ("Voy a simular");
+  Simulator::Run ();
+  Simulator::Destroy ();
+
+  NS_LOG_UNCOND ("Total paquetes: " << transmisor.TotalDatos());
+
+  return 0;
 }
