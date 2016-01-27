@@ -39,7 +39,7 @@ HttpGeneratorClient::GetTypeId (void)
                    "Once these bytes are sent, "
                    "no data  is sent again. The value zero means "
                    "that there is no limit.",
-                   UintegerValue (0),
+                   UintegerValue (1000),
                    MakeUintegerAccessor (&HttpGeneratorClient::m_maxBytes),
                    MakeUintegerChecker<uint32_t> ())
     .AddAttribute ("Protocol", "The type of protocol to use.",
@@ -63,9 +63,7 @@ HttpGeneratorClient::HttpGeneratorClient ()
     m_totBytes (0)
 {
   NS_LOG_FUNCTION (this);
-  double mean = 60/m_requestRate; //reques
   m_timeBetweenRequests = CreateObject<ExponentialRandomVariable> ();
-  m_timeBetweenRequests->SetAttribute ("Mean", DoubleValue (mean));
 }
 
 HttpGeneratorClient::~HttpGeneratorClient ()
@@ -102,6 +100,9 @@ void HttpGeneratorClient::StartApplication (void) // Called at time specified by
 {
   NS_LOG_FUNCTION (this);
 
+  // Set request rate attribute
+  double mean = 60/m_requestRate;
+  m_timeBetweenRequests->SetAttribute ("Mean", DoubleValue (mean));  
   // Create the socket if not already
   if (!m_socket)
     {
