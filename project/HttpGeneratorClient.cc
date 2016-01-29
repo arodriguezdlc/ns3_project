@@ -39,16 +39,16 @@ HttpGeneratorClient::GetTypeId (void)
                    "Once these bytes are sent, "
                    "no data  is sent again. The value zero means "
                    "that there is no limit.",
-                   UintegerValue (1000),
+                   UintegerValue (10000),
                    MakeUintegerAccessor (&HttpGeneratorClient::m_maxBytes),
                    MakeUintegerChecker<uint32_t> ())
     .AddAttribute ("Protocol", "The type of protocol to use.",
                    TypeIdValue (TcpSocketFactory::GetTypeId ()),
                    MakeTypeIdAccessor (&HttpGeneratorClient::m_tid),
                    MakeTypeIdChecker ())
-    .AddAttribute ("RequestRate", "Request rate (per minute) of Http Client.",
-                   DoubleValue (30),
-                   MakeDoubleAccessor (&HttpGeneratorClient::m_requestRate),
+    .AddAttribute ("TimeBetweenRequests", "Mean time between HTTP requests (in seconds).",
+                   DoubleValue (5),
+                   MakeDoubleAccessor (&HttpGeneratorClient::m_timeBetweenRequests),
                    MakeDoubleChecker<double> ())
     .AddTraceSource ("Tx", "A new packet is created and is sent",
                    MakeTraceSourceAccessor (&HttpGeneratorClient::m_txTrace))
@@ -63,7 +63,7 @@ HttpGeneratorClient::HttpGeneratorClient ()
     m_totBytes (0)
 {
   NS_LOG_FUNCTION (this);
-  m_timeBetweenRequests = CreateObject<ExponentialRandomVariable> ();
+  m_expRandom = CreateObject<ExponentialRandomVariable> ();
 }
 
 HttpGeneratorClient::~HttpGeneratorClient ()
@@ -101,39 +101,9 @@ void HttpGeneratorClient::StartApplication (void) // Called at time specified by
   NS_LOG_FUNCTION (this);
 
   // Set request rate attribute
-  double mean = 60/m_requestRate;
-  m_timeBetweenRequests->SetAttribute ("Mean", DoubleValue (mean));  
-  // Create the socket if not already
-  if (!m_socket)
-    {
-      m_socket = Socket::CreateSocket (GetNode (), m_tid);
-
-      // Fatal error if socket type is not NS3_SOCK_STREAM or NS3_SOCK_SEQPACKET
-      if (m_socket->GetSocketType () != Socket::NS3_SOCK_STREAM &&
-          m_socket->GetSocketType () != Socket::NS3_SOCK_SEQPACKET)
-        {
-          NS_FATAL_ERROR ("Using HttpGeneratorClient with an incompatible socket type. "
-                          "HttpGeneratorClient requires SOCK_STREAM or SOCK_SEQPACKET. "
-                          "In other words, use TCP instead of UDP.");
-        }
-
-      if (Inet6SocketAddress::IsMatchingType (m_peer))
-        {
-          m_socket->Bind6 ();
-        }
-      else if (InetSocketAddress::IsMatchingType (m_peer))
-        {
-          m_socket->Bind ();
-        }
-
-      //m_socket->Connect (m_peer);
-      //m_socket->ShutdownRecv ();
-      m_socket->SetConnectCallback (
-        MakeCallback (&HttpGeneratorClient::ConnectionSucceeded, this),
-        MakeCallback (&HttpGeneratorClient::ConnectionFailed, this));
-      m_socket->SetSendCallback (
-        MakeCallback (&HttpGeneratorClient::DataSend, this));
-    }
+  
+  m_expRandom->SetAttribute ("Mean", DoubleValue (m_timeBetweenRequests));  
+  
   /*
   if (m_connected)
     {
@@ -167,15 +137,41 @@ void HttpGeneratorClient::StopApplication (void) // Called at time specified by 
 void HttpGeneratorClient::Request () 
 {
   NS_LOG_FUNCTION (this);
+  NS_LOG_INFO ("Sending a new HTTP request (Time: " << Simulator::Now() << ")" );
+  CreateNewSocket ();
   m_socket->Connect (m_peer);
-  if (m_connected) 
-    {
-      SendData ();
-    }
-  else 
-    {
-      NS_LOG_ERROR ("HttpClient can't connect to server");
-    }
+}
+
+void HttpGeneratorClient::CreateNewSocket () {
+  
+      m_socket = Socket::CreateSocket (GetNode (), m_tid);
+
+      // Fatal error if socket type is not NS3_SOCK_STREAM or NS3_SOCK_SEQPACKET
+      if (m_socket->GetSocketType () != Socket::NS3_SOCK_STREAM &&
+          m_socket->GetSocketType () != Socket::NS3_SOCK_SEQPACKET)
+        {
+          NS_FATAL_ERROR ("Using HttpGeneratorClient with an incompatible socket type. "
+                          "HttpGeneratorClient requires SOCK_STREAM or SOCK_SEQPACKET. "
+                          "In other words, use TCP instead of UDP.");
+        }
+
+      if (Inet6SocketAddress::IsMatchingType (m_peer))
+        {
+          m_socket->Bind6 ();
+        }
+      else if (InetSocketAddress::IsMatchingType (m_peer))
+        {
+          m_socket->Bind ();
+        }
+
+      //m_socket->Connect (m_peer);
+      //m_socket->ShutdownRecv ();
+      m_socket->SetConnectCallback (
+        MakeCallback (&HttpGeneratorClient::ConnectionSucceeded, this),
+        MakeCallback (&HttpGeneratorClient::ConnectionFailed, this));
+      m_socket->SetSendCallback (
+        MakeCallback (&HttpGeneratorClient::DataSend, this));
+    
 }
 
 /* SEND DATA UNTIL MAX BYTES */
@@ -212,8 +208,9 @@ void HttpGeneratorClient::SendData (void)
     {
       m_socket->Close ();
       m_connected = false;
-      //Schedule next request
-       Simulator::Schedule (Seconds(m_timeBetweenRequests->GetValue()), &HttpGeneratorClient::Request, this);
+      m_totBytes = 0;
+      //Schedule next request 
+       Simulator::Schedule (Seconds(m_expRandom->GetValue()), &HttpGeneratorClient::Request, this);
     }
 }
 
