@@ -68,6 +68,8 @@ HttpGeneratorServer::GetTypeId (void)
                    MakeUintegerChecker<uint32_t> ())
     .AddTraceSource ("Rx", "A packet has been received",
                      MakeTraceSourceAccessor (&HttpGeneratorServer::m_rxTrace))
+    .AddTraceSource ("Tx", "A new packet is created and is sent",
+                   MakeTraceSourceAccessor (&HttpGeneratorServer::m_txTrace))
   ;
   return tid;
 }
@@ -194,10 +196,15 @@ void HttpGeneratorServer::HandlePeerError (Ptr<Socket> socket)
 void HttpGeneratorServer::HandleAccept (Ptr<Socket> s, const Address& from)
 {
   NS_LOG_FUNCTION (this << s << from);
+  NS_LOG_DEBUG("HTTPSERVER: RECEIVED HTTP REQUEST, RESPONDING");
   s->SetRecvCallback (MakeCallback (&HttpGeneratorServer::HandleRead, this));
   m_socketList.push_back (s);
-  //SendData(s);
+  s->SetSendCallback (
+    MakeCallback (&HttpGeneratorServer::DataSend, this));
+  m_totBytes = 0;
+  SendData(s);
 
+  //SendData(s);
 }
 
 bool HttpGeneratorServer::HandleConnectionRequest (Ptr<Socket> s, const Address& from)
@@ -205,8 +212,14 @@ bool HttpGeneratorServer::HandleConnectionRequest (Ptr<Socket> s, const Address&
   NS_LOG_FUNCTION (this << s << from);
   return true;
 }
-/*
-void HttpGeneratorServer::SendData (void)
+
+void HttpGeneratorServer::DataSend (Ptr<Socket> s, uint32_t)
+{
+  NS_LOG_FUNCTION (this);
+  Simulator::ScheduleNow (&HttpGeneratorServer::SendData, this, s);  
+}
+
+void HttpGeneratorServer::SendData (Ptr <Socket> s)
 {
   NS_LOG_FUNCTION (this);
 
@@ -222,18 +235,18 @@ void HttpGeneratorServer::SendData (void)
       Ptr<Packet> packet;
       if (m_maxBytes - m_totBytes <= m_sendSize) { //If it's last packet
       
-        NS_LOG_INFO("HttpClient: Sending last packet of request at " << Simulator::Now ());        
+        NS_LOG_INFO("HttpServer: Sending last packet of request at " << Simulator::Now ());        
        
       } else {
       
-        NS_LOG_INFO("HttpClient: Sending a new packet at " << Simulator::Now ());
+        NS_LOG_INFO("HttpServer: Sending a new packet at " << Simulator::Now ());
         
       }
 
       packet = Create<Packet> (toSend);      
       
       m_txTrace (packet);
-      int actual = m_socket->Send (packet);
+      int actual = s->Send (packet);
       if (actual > 0)
         {
           m_totBytes += actual;
@@ -249,9 +262,9 @@ void HttpGeneratorServer::SendData (void)
   // Check if time to close (all sent)
   if (m_totBytes == m_maxBytes)
     {
-      socket->Close (); //HAY QUE SACARLO DE LA LISTA DE SOCKETS!!           
+      s->Close (); //HAY QUE SACARLO DE LA LISTA DE SOCKETS!!           
     }
 }
-*/
+
 
 } // Namespace ns3

@@ -40,33 +40,17 @@ private:
   virtual void StartApplication (void);    // Called at time specified by Start
   virtual void StopApplication (void);     // Called at time specified by Stop
 
-  /**
-   * \brief Handle a packet received by the application
-   * \param socket the receiving socket
-   */
-  void HandleRead (Ptr<Socket> socket);
-  /**
-   * \brief Handle an incoming connection
-   * \param socket the incoming connection socket
-   * \param from the address the connection is from
-   */
-  void HandleAccept (Ptr<Socket> socket, const Address& from);
-  /**
-   * \brief Handle an connection close
-   * \param socket the connected socket
-   */
-  bool HandleConnectionRequest (Ptr<Socket> socket, const Address& from);
-  /**
-   * \brief Handle a new connection request from HttpGeneratorClient
-   * \param socket the connected socket
-   * \return return true if connection is accepted and false if not. 
-   */
-  void HandlePeerClose (Ptr<Socket> socket);
-  /**
-   * \brief Handle an connection error
-   * \param socket the connected socket
-   */
+  
+  void HandleRead (Ptr<Socket> socket);  
+  void HandleAccept (Ptr<Socket> socket, const Address& from);  
+  bool HandleConnectionRequest (Ptr<Socket> socket, const Address& from);  
+  void HandlePeerClose (Ptr<Socket> socket);  
   void HandlePeerError (Ptr<Socket> socket);
+
+  void DataSend (Ptr<Socket> s, uint32_t);
+  void SendData (Ptr <Socket> s);
+
+
 
   // In the case of TCP, each socket accept returns a new socket, so the 
   // listening socket is stored separately from the accepted sockets
@@ -83,6 +67,7 @@ private:
 
   /// Traced Callback: received packets, source address.
   TracedCallback<Ptr<const Packet>, const Address &> m_rxTrace;
+  TracedCallback<Ptr<const Packet> > m_txTrace;
 
 };
 
