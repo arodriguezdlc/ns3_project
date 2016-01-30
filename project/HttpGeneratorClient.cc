@@ -13,7 +13,6 @@
 #include "ns3/random-variable-stream.h"
 #include "HttpGeneratorClient.h"
 
-
 NS_LOG_COMPONENT_DEFINE ("HttpGeneratorClient");
 
 namespace ns3 {
@@ -39,7 +38,7 @@ HttpGeneratorClient::GetTypeId (void)
                    "Once these bytes are sent, "
                    "no data  is sent again. The value zero means "
                    "that there is no limit.",
-                   UintegerValue (10000),
+                   UintegerValue (1000),
                    MakeUintegerAccessor (&HttpGeneratorClient::m_maxBytes),
                    MakeUintegerChecker<uint32_t> ())
     .AddAttribute ("Protocol", "The type of protocol to use.",
@@ -137,7 +136,7 @@ void HttpGeneratorClient::StopApplication (void) // Called at time specified by 
 void HttpGeneratorClient::Request () 
 {
   NS_LOG_FUNCTION (this);
-  NS_LOG_INFO ("Sending a new HTTP request (Time: " << Simulator::Now() << ")" );
+  NS_LOG_DEBUG ("HTTPCLIENT: SENDING A NEW HTTP REQUEST (Time: " << Simulator::Now() << ")" );
   CreateNewSocket ();
   m_socket->Connect (m_peer);
 }
@@ -187,8 +186,20 @@ void HttpGeneratorClient::SendData (void)
         {
           toSend = std::min (m_sendSize, m_maxBytes - m_totBytes);
         }
-      NS_LOG_LOGIC ("sending packet at " << Simulator::Now ());
-      Ptr<Packet> packet = Create<Packet> (toSend);
+
+      Ptr<Packet> packet;
+      if (m_maxBytes - m_totBytes <= m_sendSize) { //If it's last packet
+      
+        NS_LOG_INFO("HttpClient: Sending last packet of request at " << Simulator::Now ());        
+       
+      } else {
+      
+        NS_LOG_INFO("HttpClient: Sending a new packet at " << Simulator::Now ());
+        
+      }
+
+      packet = Create<Packet> (toSend);      
+      
       m_txTrace (packet);
       int actual = m_socket->Send (packet);
       if (actual > 0)
@@ -210,7 +221,7 @@ void HttpGeneratorClient::SendData (void)
       m_connected = false;
       m_totBytes = 0;
       //Schedule next request 
-       Simulator::Schedule (Seconds(m_expRandom->GetValue()), &HttpGeneratorClient::Request, this);
+      Simulator::Schedule (Seconds(m_expRandom->GetValue()), &HttpGeneratorClient::Request, this);
     }
 }
 

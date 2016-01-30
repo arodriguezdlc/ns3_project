@@ -11,6 +11,8 @@
 #include "ns3/ipv4-global-routing-helper.h"
 #include "HttpGeneratorClientHelper.h"
 #include "HttpGeneratorClient.h"
+#include "HttpGeneratorServerHelper.h"
+#include "HttpGeneratorServer.h"
 
 #define PORT 9
 
@@ -71,10 +73,10 @@ int main (int argc, char *argv[])
     httpClientApps.Stop  (Seconds(60.0)); 
 
     //HERE WE HAVE TO INSTALL SERVER APP
-    PacketSinkHelper sink ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), PORT));
-    ApplicationContainer sinkApp = sink.Install (nodes.Get (1));
-    sinkApp.Start (Seconds (1.0));
-    sinkApp.Stop  (Seconds (60.0));
+    HttpGeneratorServerHelper httpServer ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), PORT));
+    ApplicationContainer httpServerApp = httpServer.Install (nodes.Get (1));
+    httpServerApp.Start (Seconds (1.0));
+    httpServerApp.Stop  (Seconds (60.0));
 
     if (tracing) {
        pointToPoint.EnablePcapAll ("httpGenerator");

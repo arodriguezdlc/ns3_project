@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 
-#include "packet-sink-helper.h"
+#include "HttpGeneratorServerHelper.h"
 #include "ns3/string.h"
 #include "ns3/inet-socket-address.h"
 #include "ns3/names.h"
@@ -9,7 +9,7 @@ namespace ns3 {
 
 HttpGeneratorServerHelper::HttpGeneratorServerHelper (std::string protocol, Address address)
 {
-  m_factory.SetTypeId ("ns3::PacketSink");
+  m_factory.SetTypeId ("ns3::HttpGeneratorServer");
   m_factory.Set ("Protocol", StringValue (protocol));
   m_factory.Set ("Local", AddressValue (address));
 }
