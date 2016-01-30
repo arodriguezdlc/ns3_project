@@ -17,7 +17,9 @@ G711Generator::G711Generator ()
 {
 	tbPkts = 0.02; //Por defecto son 50 pps
 	sizePkt = 172; //Payload+RTP
-		std::cout << "Instanciado" << std::endl;
+	num_pkts = 0;
+
+	std::cout << "ESTA VERSION DE G711 NO SE PUEDE ENTREGAR. Falta revisar: \n - Comentarios \n - \"cout's\" \n - num_pkts y demás debugueo." << std::endl;
 
 }
 
@@ -57,4 +59,7 @@ G711Generator::DoGenerate (void)
   Ptr<Packet> p = Create<Packet> (sizePkt);
   
   m_socket->Send (p);
+
+	num_pkts++;
+
 }

@@ -42,4 +42,7 @@ private:
   Ptr<Socket> 	m_socket;
   EventId     	m_next;
 
+  uint32_t		num_pkts;
+
+
 };
