@@ -148,6 +148,7 @@ void HttpGeneratorServer::StopApplication ()     // Called at time specified by 
       m_socketList.pop_front ();
       acceptedSocket->Close ();
     }
+  m_totBytes.clear();
   if (m_socket) 
     {
       m_socket->Close ();
@@ -198,10 +199,13 @@ void HttpGeneratorServer::HandleAccept (Ptr<Socket> s, const Address& from)
   NS_LOG_FUNCTION (this << s << from);
   NS_LOG_DEBUG("HTTPSERVER: RECEIVED HTTP REQUEST, RESPONDING");
   s->SetRecvCallback (MakeCallback (&HttpGeneratorServer::HandleRead, this));
+  //Adding socket to socket list
   m_socketList.push_back (s);
+   //Adding node id of socket
+  m_totBytes[s] = 0;
   s->SetSendCallback (
     MakeCallback (&HttpGeneratorServer::DataSend, this));
-  m_totBytes = 0;
+  //m_totBytes = 0;
   SendData(s);
 
   //SendData(s);
@@ -223,47 +227,60 @@ void HttpGeneratorServer::SendData (Ptr <Socket> s)
 {
   NS_LOG_FUNCTION (this);
 
-  while (m_maxBytes == 0 || m_totBytes < m_maxBytes)
-    { // Time to send more
-      uint32_t toSend = m_sendSize;
-      // Make sure we don't send too many
-      if (m_maxBytes > 0)
-        {
-          toSend = std::min (m_sendSize, m_maxBytes - m_totBytes);
-        }
 
-      Ptr<Packet> packet;
-      if (m_maxBytes - m_totBytes <= m_sendSize) { //If it's last packet
-      
-        NS_LOG_INFO("HttpServer: Sending last packet of request at " << Simulator::Now ());        
-       
-      } else {
-      
-        NS_LOG_INFO("HttpServer: Sending a new packet at " << Simulator::Now ());
+
+  std::map<Ptr<Socket>, uint32_t>::iterator it;
+  it=m_totBytes.find (s);
+  if (it != m_totBytes.end()) {
+    uint32_t totBytes = it->second;
+
+    while (m_maxBytes == 0 || totBytes < m_maxBytes)
+      { // Time to send more
+        uint32_t toSend = m_sendSize;
+        // Make sure we don't send too many
+        if (m_maxBytes > 0)
+          {
+            toSend = std::min (m_sendSize, m_maxBytes - totBytes);
+          }
+
+        Ptr<Packet> packet;
+        if (m_maxBytes - totBytes <= m_sendSize) { //If it's last packet
         
-      }
+          NS_LOG_INFO("HttpServer: Sending last packet of response at " << Simulator::Now ());        
+         
+        } else {
+        
+          NS_LOG_INFO("HttpServer: Sending a new packet at " << Simulator::Now ());
+          
+        }
 
-      packet = Create<Packet> (toSend);      
-      
-      m_txTrace (packet);
-      int actual = s->Send (packet);
-      if (actual > 0)
-        {
-          m_totBytes += actual;
-        }
-      // We exit this loop when actual < toSend as the send side
-      // buffer is full. The "DataSent" callback will pop when
-      // some buffer space has freed ip.
-      if ((unsigned)actual != toSend)
-        {
-          break;
-        }
-    }
-  // Check if time to close (all sent)
-  if (m_totBytes == m_maxBytes)
-    {
-      s->Close (); //HAY QUE SACARLO DE LA LISTA DE SOCKETS!!           
-    }
+        packet = Create<Packet> (toSend);      
+        
+        m_txTrace (packet);
+        int actual = s->Send (packet);
+        if (actual > 0)
+          {
+            totBytes += actual;
+          }
+        // We exit this loop when actual < toSend as the send side
+        // buffer is full. The "DataSent" callback will pop when
+        // some buffer space has freed ip.
+        if ((unsigned)actual != toSend)
+          {
+            break;
+          }
+      }
+    //m_totBytes.erase (it);
+    m_totBytes[s] = totBytes; //Update map of totBytes
+    // Check if time to close (all sent)
+    if (totBytes == m_maxBytes)
+      {
+        //m_totBytes.erase (it); //Delete totBytes for this socket
+        s->Close ();      
+      }
+  } else {  //If iterator 
+    NS_LOG_ERROR ("ERROR, ITERATOR NOT FOUND FOR SOCKET " << s);
+  }
 }
 
 

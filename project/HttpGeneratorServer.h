@@ -32,6 +32,7 @@ public:
   Ptr<Socket> GetListeningSocket (void) const;
 
   std::list<Ptr<Socket> > GetAcceptedSockets (void) const;
+  
  
 protected:
   virtual void DoDispose (void);
@@ -56,6 +57,7 @@ private:
   // listening socket is stored separately from the accepted sockets
   Ptr<Socket>     m_socket;       //!< Listening socket
   std::list<Ptr<Socket> > m_socketList; //!< the accepted sockets
+  std::map<Ptr<Socket>, uint32_t> m_totBytes;
 
   Address         m_local;        //!< Local address to bind to
   uint32_t        m_totalRx;      //!< Total bytes received
@@ -63,7 +65,7 @@ private:
 
   uint32_t        m_sendSize;     //!< Size of data to send each time
   uint32_t        m_maxBytes;     //!< Limit total number of bytes sent
-  uint32_t        m_totBytes;     //!< Total bytes sent so far
+  //uint32_t        m_totBytes;     //!< Total bytes sent so far
 
   /// Traced Callback: received packets, source address.
   TracedCallback<Ptr<const Packet>, const Address &> m_rxTrace;

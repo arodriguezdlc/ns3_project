@@ -43,7 +43,7 @@ int main (int argc, char *argv[])
     * Scenary creation   *
     **********************/
 
-    //Creating 2 nodes (client and server)
+    //Creating client nodes (client and server)
     NodeContainer nodes;
     nodes.Create (2);
 
@@ -68,9 +68,13 @@ int main (int argc, char *argv[])
 
     //HERE WE HAVE TO INSTALL CLIENT APP
     HttpGeneratorClientHelper httpClient ("ns3::TcpSocketFactory", InetSocketAddress (interfaces.GetAddress (1), PORT));        
-    ApplicationContainer httpClientApps = httpClient.Install (nodes.Get (0));
-    httpClientApps.Start (Seconds(1.0));
-    httpClientApps.Stop  (Seconds(60.0)); 
+    ApplicationContainer httpClientApp1 = httpClient.Install (nodes.Get (0));
+    //ApplicationContainer httpClientApp2 = httpClient.Install (nodes.Get (1));
+
+    httpClientApp1.Start (Seconds(1.0));
+    httpClientApp1.Stop  (Seconds(60.0)); 
+    //httpClientApp2.Start (Seconds(1.0));
+    //httpClientApp2.Stop  (Seconds(60.0)); 
 
     //HERE WE HAVE TO INSTALL SERVER APP
     HttpGeneratorServerHelper httpServer ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), PORT));
