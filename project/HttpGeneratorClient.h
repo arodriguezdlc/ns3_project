@@ -33,6 +33,7 @@ private:
   void SendData ();
   void Request ();
   void CreateNewSocket ();
+  void HandleRead (Ptr<Socket> socket);
 
 
   Ptr<Socket>     m_socket;       //!< Associated socket
@@ -43,6 +44,7 @@ private:
   uint32_t        m_totBytes;     //!< Total bytes sent so far
   TypeId          m_tid;          //!< The type of protocol to use.
   double          m_timeBetweenRequests;  //!< Mean time between HTTP requests (in seconds).
+  bool            m_stop;
 
   Ptr<ExponentialRandomVariable> m_expRandom;
   /// Traced Callback: sent packets
@@ -53,6 +55,8 @@ private:
   void ConnectionSucceeded (Ptr<Socket> socket);
   void ConnectionFailed (Ptr<Socket> socket);
   void DataSend (Ptr<Socket>, uint32_t); // for socket's SetSendCallback
+  void ConnectionClosed (Ptr<Socket> socket);
+  void ConnectionClosedWithError (Ptr<Socket> socket);
 };
 
 } // namespace ns3
