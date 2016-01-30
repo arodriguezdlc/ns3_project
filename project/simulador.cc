@@ -29,6 +29,7 @@ int main (int argc, char *argv[])
 	uint32_t responseSize = 10000;
 	Time     delay("5ms");
 
+    uint16_t port = 9;
 
 	//Command line parsing
 	CommandLine cmd;
@@ -62,14 +63,14 @@ int main (int argc, char *argv[])
 	Ipv4AddressHelper ipv4;
 	ipv4.SetBase ("10.1.1.0", "255.255.255.0");
 	Ipv4InterfaceContainer interfaces = ipv4.Assign (devices);
+	Address serverAddress = Address (interfaces.GetAddress (1));
 
 
 
 	/******************************
 	* Applications installation   *
 	*******************************/
-    uint16_t port = 9;
-	Ipv4Address serverAddress =  Ipv4Address::GetAny ();
+
  
 	//HERE WE HAVE TO INSTALL CLIENT APP
     G711Generator codec;
@@ -80,7 +81,7 @@ int main (int argc, char *argv[])
 	codec.SetStopTime (Seconds (10));
 
     //HERE WE HAVE TO INSTALL SERVER APP
-	PacketSinkHelper sink ("ns3::UdpSocketFactory", InetSocketAddress (serverAddress, port));
+	PacketSinkHelper sink ("ns3::UdpSocketFactory", InetSocketAddress (interfaces.GetAddress (1), port));
 	ApplicationContainer sinkApp = sink.Install (nodes.Get (0));
 	sinkApp.Start (Seconds (1.0));
 	sinkApp.Stop (Seconds (10.0));
