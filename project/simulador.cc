@@ -12,6 +12,7 @@
 
 #include "ns3/ipv4-interface-container.h"
 
+#include "Observador.h"
 
 #include "G711Generator.h"
 
@@ -73,10 +74,10 @@ int main (int argc, char *argv[])
 	//HERE WE HAVE TO INSTALL CLIENT APP
     G711Generator codec;
     nodes.Get(1)->AddApplication(&codec);
-    codec.SetRemote("ns3::UdpSocketFactory",serverAddress);
- 
- 	codec.Start (Seconds (1.0));
-	codec.Stop (Seconds (10.0));
+    codec.SetRemote("ns3::UdpSocketFactory", serverAddress, port);
+	
+	codec.SetStartTime (Seconds (1.0));
+	codec.SetStopTime (Seconds (10));
 
     //HERE WE HAVE TO INSTALL SERVER APP
 	PacketSinkHelper sink ("ns3::UdpSocketFactory", InetSocketAddress (serverAddress, port));
@@ -85,14 +86,39 @@ int main (int argc, char *argv[])
 	sinkApp.Stop (Seconds (10.0));
  
 
-	//Esta captura no captura nada :(
 	pointToPoint.EnablePcapAll ("httpGenerator");
 	/*************************
 	* Simulation execution   *
 	**************************/
 
+	Observador observador;
+	nodes.Get (0) -> GetApplication(0) -> TraceConnectWithoutContext
+            ("Rx", MakeCallback(&Observador::Recepcion, &observador));	
+    nodes.Get (1) -> GetApplication(0) -> TraceConnectWithoutContext
+            ("Rx", MakeCallback(&Observador::Recepcion, &observador));
+  
+ 
+	nodes.Get (1) -> GetApplication(0) -> TraceConnectWithoutContext
+        ("Tx", MakeCallback(&Observador::Envio,  &observador));
+	nodes.Get (0) -> GetApplication(0) -> TraceConnectWithoutContext
+        ("Tx", MakeCallback(&Observador::Envio,  &observador));
+
+	
+	
+	
 	Simulator::Run();
 	Simulator::Destroy ();
+	
+	
+	NS_LOG_INFO("Retardo medio desde on/off hasta el sumidero: " << observador.getMediaTiempo());
+	if( observador.getPaquetesPerdidos() != 0 )
+		NS_LOG_ERROR("Se han perdido paquetes");
+   
+	std::cout <<  "Retardo medio desde on/off hasta el sumidero: " << observador.getMediaTiempo() << std::endl;
+	if( observador.getPaquetesPerdidos() != 0 )
+		std::cout <<    "Se han perdido paquetes: " << observador.getPaquetesPerdidos() << std::endl;
+  
+ 
 
 return 0;
 }
