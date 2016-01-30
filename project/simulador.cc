@@ -75,8 +75,8 @@ int main (int argc, char *argv[])
     nodes.Get(1)->AddApplication(&codec);
     codec.SetRemote("ns3::UdpSocketFactory",serverAddress);
  
- 	sinkApp.Start (Seconds (1.0));
-	sinkApp.Stop (Seconds (10.0));
+ 	codec.Start (Seconds (1.0));
+	codec.Stop (Seconds (10.0));
 
     //HERE WE HAVE TO INSTALL SERVER APP
 	PacketSinkHelper sink ("ns3::UdpSocketFactory", InetSocketAddress (serverAddress, port));
