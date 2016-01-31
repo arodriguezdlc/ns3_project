@@ -128,6 +128,8 @@ main (int argc, char *argv[])
 
   httpClientApp.Start (Seconds(1.0));
   httpClientApp.Stop  (Seconds(60.0)); 
+  httpServerApp.Start (Seconds(1.0));
+  httpServerApp.Stop  (Seconds(60.0));
 
   /**********************
    * Empieza simulacion *
