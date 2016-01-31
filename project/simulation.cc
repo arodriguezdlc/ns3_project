@@ -131,9 +131,7 @@ main (int argc, char *argv[])
   // Servidor a clientes
   for(uint32_t i = 0 ; i < nVoip ; i++){
     p2pNodes.Get (0)->AddApplication(&VoIPapp);
-    NS_LOG_INFO ("hola");
     VoIPapp.SetRemote("ns3::UdpSocketFactory", VoipcsmaInterfaces.GetAddress(i), PORTVOIP);
-    NS_LOG_INFO ("hola");
   }
 
   sinkapp.Add(sink.Install (VoipNodes));
