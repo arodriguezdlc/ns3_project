@@ -34,12 +34,15 @@ main (int argc, char *argv[])
 
   uint32_t nVoip = 2;
   uint32_t nHttpClient = 3;
+  bool     tracing = true;
+
 
   // Preparar los parametros
 
   CommandLine cmd;
   cmd.AddValue ("Voip", "Número de nodos VoIP", nVoip);
   cmd.AddValue ("HttpClient", "Número de nodos cliente HTTP", nHttpClient);
+  cmd.AddValue ("tracing", "flag to enable/disable pcap tracing", tracing);
   cmd.Parse (argc,argv);
 
   /*********************
@@ -130,6 +133,10 @@ main (int argc, char *argv[])
   // Servidor Http
   HttpGeneratorServerHelper httpServer ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), PORTHTTP));
   ApplicationContainer httpServerApp = httpServer.Install (p2pNodes.Get (0));
+
+  if (tracing) {
+    csma.EnablePcapAll ("project");
+  }
 
   /**********************
    * Empieza simulacion *
