@@ -61,11 +61,9 @@ main (int argc, char *argv[])
   NodeContainer p2pNodes;
   p2pNodes.Create (2);
 
-  // Nodos que pertenecen al enlace csma
-  NodeContainer csmaNodes;
-  csmaNodes.Add (p2pNodes.Get (1));
-  csmaNodes.Add (VoipNodes);
-  csmaNodes.Add (HttpClientNodes);
+  // Nodos frontera entre p2p y csma
+  NodeContainer APNode;
+  APNode.Add (p2pNodes.Get (1));
 
   // Instalamos el dispositivo en los nodos punto a punto
   PointToPointHelper pointToPoint;
@@ -76,15 +74,20 @@ main (int argc, char *argv[])
 
   // Instalamos el dispositivo de red en los nodos csma
   CsmaHelper csma;
-  NetDeviceContainer csmaDevices;
+  NetDeviceContainer APcsmaDevices;
   csma.SetChannelAttribute ("DataRate", StringValue("100Mbps"));
   csma.SetChannelAttribute ("Delay", TimeValue (NanoSeconds (6560)));
-  csmaDevices = csma.Install (csmaNodes);
+  APcsmaDevices = csma.Install (APNode);
+  NetDeviceContainer VoipcsmaDevices;
+  VoipcsmaDevices = csma.Install (VoipNodes);
+  NetDeviceContainer httpcsmaDevices;
+  httpcsmaDevices = csma.Install (HttpClientNodes);
 
   // Instalamos la pila TCP/IP en todos los nodos
   InternetStackHelper stack;
-  stack.Install (p2pNodes.Get (0));
-  stack.Install (csmaNodes);
+  stack.Install (p2pNodes);
+  stack.Install (VoipNodes);
+  stack.Install (HttpClientNodes);
 
   // Asignamos direcciones a cada una de las interfaces
   // Utilizamos dos rangos de direcciones diferentes:
@@ -95,9 +98,13 @@ main (int argc, char *argv[])
   Ipv4InterfaceContainer p2pInterfaces;
   address.SetBase ("10.1.1.0", "255.255.255.0");
   p2pInterfaces = address.Assign (p2pDevices);
-  Ipv4InterfaceContainer csmaInterfaces;
+  Ipv4InterfaceContainer APcsmaInterfaces;
   address.SetBase ("10.1.2.0", "255.255.255.0");
-  csmaInterfaces = address.Assign (csmaDevices);
+  APcsmaInterfaces = address.Assign (APcsmaDevices);
+  Ipv4InterfaceContainer VoipcsmaInterfaces;
+  VoipcsmaInterfaces = address.Assign (VoipcsmaDevices);
+  Ipv4InterfaceContainer httpcsmaInterfaces;
+  httpcsmaInterfaces = address.Assign (httpcsmaDevices);
 
   // Calculamos las rutas del escenario. Con este comando, los
   //     nodos de la red de área local definen que para acceder
@@ -111,6 +118,7 @@ main (int argc, char *argv[])
 
   /** Instalacion de aplicacion VoIP **/
 
+  // Clientes a servidor
   PacketSinkHelper sink ("ns3::UdpSocketFactory", Address (InetSocketAddress (Ipv4Address::GetAny (), PORTVOIP))); //sumidero udp en el nodo p2p para todo lo que vaya a su ip y a ese puerto
   ApplicationContainer sinkapp = sink.Install (p2pNodes.Get (0));
 
@@ -119,7 +127,17 @@ main (int argc, char *argv[])
     VoipNodes.Get(i)->AddApplication(&VoIPapp);
     VoIPapp.SetRemote("ns3::UdpSocketFactory", p2pInterfaces.GetAddress (0), PORTVOIP); //aplicacion Voip que envia a la ip del nodo p2p y por un puerto.
   }
-  
+
+  // Servidor a clientes
+  for(uint32_t i = 0 ; i < nVoip ; i++){
+    p2pNodes.Get (0)->AddApplication(&VoIPapp);
+    NS_LOG_INFO ("hola");
+    VoIPapp.SetRemote("ns3::UdpSocketFactory", VoipcsmaInterfaces.GetAddress(i), PORTVOIP);
+    NS_LOG_INFO ("hola");
+  }
+
+  sinkapp.Add(sink.Install (VoipNodes));
+
   VoIPapp.SetStartTime (Seconds (1.0));
   VoIPapp.SetStopTime (Seconds (60.0));
   
