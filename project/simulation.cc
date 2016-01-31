@@ -28,7 +28,9 @@ NS_LOG_COMPONENT_DEFINE ("simulation");
 int
 main (int argc, char *argv[])
 {
+  GlobalValue::Bind("ChecksumEnabled", BooleanValue(true));
   Time::SetResolution (Time::MS);
+
 
   // Parametros de la simulacion
 
@@ -135,7 +137,7 @@ main (int argc, char *argv[])
   ApplicationContainer httpServerApp = httpServer.Install (p2pNodes.Get (0));
 
   if (tracing) {
-    csma.EnablePcapAll ("project");
+    pointToPoint.EnablePcapAll ("project");
   }
 
   /**********************
