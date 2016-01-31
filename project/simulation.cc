@@ -1,10 +1,23 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 
-#include <ns3/core-module.h>
-#include <ns3/node.h>
-#include <ns3/point-to-point-net-device.h>
-#include <ns3/point-to-point-channel.h>
-#include <ns3/drop-tail-queue.h>
+#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/csma-module.h"
+#include "ns3/internet-module.h"
+#include "ns3/point-to-point-module.h"
+#include "ns3/applications-module.h"
+#include "ns3/ipv4-global-routing-helper.h"
+#include "ns3/ipv4-interface-container.h"
+
+#include "G711Generator.h"
+
+#include "HttpGeneratorClientHelper.h"
+#include "HttpGeneratorClient.h"
+#include "HttpGeneratorServerHelper.h"
+#include "HttpGeneratorServer.h"
+
+#define PORTVOIP 9;
+#define PORTHTTP 10;
 
 
 
@@ -91,25 +104,36 @@ main (int argc, char *argv[])
    * Instalacion de aplicaciones *
    *******************************/
 
-  // Instalacion de aplicacion VoIP
-  uint16_t port = 9;
-  PacketSinkHelper sink ("ns3::UdpSocketFactory", Address (InetSocketAddress (p2pInterfaces.GetAddress (0), port))); //sumidero udp en el nodo p2p para todo lo que vaya a su ip y a ese puerto
+  /** Instalacion de aplicacion VoIP **/
+
+  PacketSinkHelper sink ("ns3::UdpSocketFactory", Address (InetSocketAddress (Ipv4Address::GetAny (), PORTVOIP))); //sumidero udp en el nodo p2p para todo lo que vaya a su ip y a ese puerto
   ApplicationContainer sinkapp = sink.Install (p2pNodes.Get (0));
 
   G711Generator VoIPapp;
-  VoIPapp.SetRemote("ns3::UdpSocketFactory", p2pInterfaces.GetAddress (0), port); //aplicacion Voip que envia a la ip del nodo p2p y por un puerto.
+  VoIPapp.SetRemote("ns3::UdpSocketFactory", p2pInterfaces.GetAddress (0), PORTVOIP); //aplicacion Voip que envia a la ip del nodo p2p y por un puerto.
   for(uint32_t i = 0 ; i < nVoip ; i++)
     VoipNodes.Get(i)->AddApplication(&VoIPapp);
   
   VoIPapp.Start (Seconds (1.0));
-  VoIPapp.Stop (Seconds (10.0));
+  VoIPapp.Stop (Seconds (60.0));
   
-  // Instalacion de aplicacion HttpGenerator
+  /** Instalacion de aplicacion HttpGenerator (cliente y servidor) **/
+
+  // Cliente Http
+  HttpGeneratorClientHelper httpClient ("ns3::TcpSocketFactory", InetSocketAddress (p2pInterfaces.GetAddress (0), PORTHTTP));        
+  ApplicationContainer httpClientApp = httpClient.Install (HttpClientNodes);
+
+  // Servidor Http
+  HttpGeneratorServerHelper httpServer ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), PORTHTTP));
+  ApplicationContainer httpServerApp = httpServer.Install (p2pNodes.Get (0));
+
+  httpClientApp.Start (Seconds(1.0));
+  httpClientApp.Stop  (Seconds(60.0)); 
+
+  /**********************
+   * Empieza simulacion *
+   **********************/
   
-
-
-
-
   NS_LOG_UNCOND ("Voy a simular");
   Simulator::Run ();
   Simulator::Destroy ();
