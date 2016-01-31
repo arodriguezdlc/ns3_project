@@ -16,8 +16,8 @@
 #include "HttpGeneratorServerHelper.h"
 #include "HttpGeneratorServer.h"
 
-#define PORTVOIP 9;
-#define PORTHTTP 10;
+#define PORTVOIP 9
+#define PORTHTTP 10
 
 
 using namespace ns3;
@@ -37,6 +37,7 @@ main (int argc, char *argv[])
 
   // Preparar los parametros
 
+  CommandLine cmd;
   cmd.AddValue ("Voip", "Número de nodos VoIP", nVoip);
   cmd.AddValue ("HttpClient", "Número de nodos cliente HTTP", nHttpClient);
   cmd.Parse (argc,argv);
@@ -47,9 +48,9 @@ main (int argc, char *argv[])
 
   // Nodos VoIP y Http
   NodeContainer VoipNodes;
-  VoipNodes.create(nVoip);
+  VoipNodes.Create(nVoip);
   NodeContainer HttpClientNodes;
-  HttpClientNodes.create(nHttpClient);
+  HttpClientNodes.Create(nHttpClient);
 
   // Nodos que pertenecen al enlace punto a punto
   NodeContainer p2pNodes;
@@ -109,12 +110,13 @@ main (int argc, char *argv[])
   ApplicationContainer sinkapp = sink.Install (p2pNodes.Get (0));
 
   G711Generator VoIPapp;
-  VoIPapp.SetRemote("ns3::UdpSocketFactory", p2pInterfaces.GetAddress (0), PORTVOIP); //aplicacion Voip que envia a la ip del nodo p2p y por un puerto.
-  for(uint32_t i = 0 ; i < nVoip ; i++)
+  for(uint32_t i = 0 ; i < nVoip ; i++){
     VoipNodes.Get(i)->AddApplication(&VoIPapp);
+    VoIPapp.SetRemote("ns3::UdpSocketFactory", p2pInterfaces.GetAddress (0), PORTVOIP); //aplicacion Voip que envia a la ip del nodo p2p y por un puerto.
+  }
   
-  VoIPapp.Start (Seconds (1.0));
-  VoIPapp.Stop (Seconds (60.0));
+  VoIPapp.SetStartTime (Seconds (1.0));
+  VoIPapp.SetStopTime (Seconds (60.0));
   
   /** Instalacion de aplicacion HttpGenerator (cliente y servidor) **/
 
@@ -122,18 +124,18 @@ main (int argc, char *argv[])
   HttpGeneratorClientHelper httpClient ("ns3::TcpSocketFactory", InetSocketAddress (p2pInterfaces.GetAddress (0), PORTHTTP));        
   ApplicationContainer httpClientApp = httpClient.Install (HttpClientNodes);
 
+  httpClientApp.Start (Seconds(1.0));
+  httpClientApp.Stop  (Seconds(60.0)); 
+
   // Servidor Http
   HttpGeneratorServerHelper httpServer ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), PORTHTTP));
   ApplicationContainer httpServerApp = httpServer.Install (p2pNodes.Get (0));
-
-  httpClientApp.Start (Seconds(1.0));
-  httpClientApp.Stop  (Seconds(60.0)); 
 
   /**********************
    * Empieza simulacion *
    **********************/
   
-  NS_LOG_UNCOND ("Voy a simular");
+  NS_LOG_INFO ("Voy a simular");
   Simulator::Run ();
   Simulator::Destroy ();
 
