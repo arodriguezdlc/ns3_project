@@ -45,5 +45,5 @@ private:
   
   uint32_t      num_pkts;
   
-
 };
+
