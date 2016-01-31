@@ -93,13 +93,13 @@ main (int argc, char *argv[])
 
   // Instalacion de aplicacion VoIP
   uint16_t port = 9;
-  PacketSinkHelper sink ("ns3::UdpSocketFactory", Address (InetSocketAddress (Ipv4Address::GetAny (), port)));
-  ApplicationContainer app = sink.Install (p2pNodes.Get (0));
+  PacketSinkHelper sink ("ns3::UdpSocketFactory", Address (InetSocketAddress (p2pInterfaces.GetAddress (0), port))); //sumidero udp en el nodo p2p para todo lo que vaya a su ip y a ese puerto
+  ApplicationContainer sinkapp = sink.Install (p2pNodes.Get (0));
 
   G711Generator VoIPapp;
-  VoIPapp.SetRemote("ns3::UdpSocketFactory",serverAddress);
+  VoIPapp.SetRemote("ns3::UdpSocketFactory", p2pInterfaces.GetAddress (0), port); //aplicacion Voip que envia a la ip del nodo p2p y por un puerto.
   for(uint32_t i = 0 ; i < nVoip ; i++)
-    nodes.Get(i)->AddApplication(&VoIPapp);
+    VoipNodes.Get(i)->AddApplication(&VoIPapp);
   
   VoIPapp.Start (Seconds (1.0));
   VoIPapp.Stop (Seconds (10.0));
@@ -108,45 +108,11 @@ main (int argc, char *argv[])
   
 
 
-  //*********************************************************************************************************************
 
-  // Dos dispositivos de red
-  Ptr<PointToPointNetDevice> dispTx = CreateObject<PointToPointNetDevice> ();
-  Ptr<PointToPointNetDevice> dispRx = CreateObject<PointToPointNetDevice> ();
-  // Un canal punto a punto
-  Ptr<PointToPointChannel> canal = CreateObject<PointToPointChannel> ();;
-  // Una aplicación transmisora
-  BitAlternanteTx transmisor(dispRx, Time("10ms"), 2048);
-  // Y una receptora
-  BitAlternanteRx receptor(dispTx);
-
-  // Montamos el escenario:
-  // Añadimos una cola a cada dispositivo
-  dispTx->SetQueue (CreateObject<DropTailQueue> ());
-  dispRx->SetQueue (CreateObject<DropTailQueue> ());
-  // Añadimos cada dispositivo a su nodo
-  nodoTx->AddDevice (dispTx);
-  nodoRx->AddDevice (dispRx);
-  // Añadimos cada aplicación a su nodo
-  nodoTx->AddApplication(&transmisor);
-  nodoRx->AddApplication(&receptor);
-  // Asociamos los dos dispositivos al canal
-  dispTx->Attach (canal);
-  dispRx->Attach (canal);
-  
-  // Modificamos los parámetos configurables
-  canal->SetAttribute ("Delay", StringValue ("2ms"));
-  dispTx->SetAttribute ("DataRate", StringValue ("5Mbps"));
-
-  // Activamos el transmisor
-  transmisor.SetStartTime (Seconds (1.0));
-  transmisor.SetStopTime (Seconds (10.0));
 
   NS_LOG_UNCOND ("Voy a simular");
   Simulator::Run ();
   Simulator::Destroy ();
-
-  NS_LOG_UNCOND ("Total paquetes: " << transmisor.TotalDatos());
 
   return 0;
 }
