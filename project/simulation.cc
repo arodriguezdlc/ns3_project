@@ -14,6 +14,7 @@
 #include "HttpGeneratorClient.h"
 #include "HttpGeneratorServerHelper.h"
 #include "HttpGeneratorServer.h"
+#include "Observador.h"
 
 #define PORT 9
 
@@ -88,6 +89,12 @@ int main (int argc, char *argv[])
     if (tracing) {
        csma.EnablePcapAll ("httpGenerator");
     }
+
+    Observador observador;
+    for (int i = 0; i < 3; i++) {
+       nodes.Get(i)->GetApplication(0)->TraceConnectWithoutContext ("Tx", MakeCallback(&Observador::PaqueteEnviado, &observador));
+    }
+
     /*************************
     * Simulation execution   *
     **************************/
