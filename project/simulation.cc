@@ -7,7 +7,6 @@
 #include <ns3/drop-tail-queue.h>
 
 
-
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE ("simulation");
@@ -149,4 +148,5 @@ main (int argc, char *argv[])
   NS_LOG_UNCOND ("Total paquetes: " << transmisor.TotalDatos());
 
   return 0;
+
 }
