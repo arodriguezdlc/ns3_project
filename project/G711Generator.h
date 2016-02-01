@@ -35,6 +35,7 @@ private:
   
   uint32_t      num_pkts;
   
+  TypeId        m_tid;
   
   uint16_t      r_port;
   Address       m_peer;

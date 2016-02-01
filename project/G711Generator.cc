@@ -42,9 +42,9 @@ void G711Generator::StartApplication (void) {
     NS_LOG_FUNCTION(this);
 
 
-    TypeId tid = GetTypeId();
+    m_tid = GetTypeId();
 
-    m_socket = Socket::CreateSocket (GetNode (), tid);
+    m_socket = Socket::CreateSocket (GetNode (), m_tid);
     int err = m_socket->Bind ();
     err += m_socket->ShutdownRecv ();
     err += m_socket->Connect (InetSocketAddress (Ipv4Address::ConvertFrom(m_peer), r_port));
