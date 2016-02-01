@@ -1,5 +1,3 @@
-/* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
-
 using namespace ns3;
 
 #include "ns3/node.h"
@@ -8,11 +6,14 @@ using namespace ns3;
 #include "ns3/socket.h" 
 
 
+
+
 class G711Generator : public Application
 {
 public:
+
+  static ns3::TypeId GetTypeId (void);
   G711Generator ();
-  
   void SetRemote(std::string socketType, Address remote,  uint16_t port);
   void SetRate (double rate);
   void SetSize (uint32_t size);
@@ -20,23 +21,12 @@ public:
  
 
 private:
-  virtual void StartApplication (void){
-      std::cout << "Arranco la aplicacion" << std::endl;
-
-    // NS_LOG_INFO("Un nuevo generador de G711 comienza a transmitir");
-    DoGenerate();
-  }
-
-  virtual void StopApplication (void){ //Hay que comprobar que se deje de transmitir, quizá haya que cancelar el próximo evento del Dogenerate
-    // NS_LOG_INFO("Se detiene un generador de G711");    
-    std::cout << "Termino la aplicacion. Paquetes enviados: "<< num_pkts << std::endl;
-    Simulator::Cancel(m_next);
-
-
-  }
+  virtual void StartApplication (void);
+  virtual void StopApplication (void);
   
   void DoGenerate (void);
   
+  TracedCallback <Ptr<const Packet> > m_txTrace;
 
   double        tbPkts;
   uint32_t      sizePkt;
@@ -45,5 +35,5 @@ private:
   
   uint32_t      num_pkts;
   
-
 };
+

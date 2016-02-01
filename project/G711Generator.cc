@@ -1,4 +1,3 @@
-/* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 
 #include <ns3/core-module.h>
 #include <ns3/callback.h>
@@ -12,32 +11,63 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE ("G711");
 
+TypeId
+G711Generator::GetTypeId (void)
+{
+  static TypeId tid = TypeId ("ns3::G711Generator")
+    .SetParent<Application> ()
+    .AddConstructor<G711Generator> ()
+    .AddTraceSource ("Tx", "A new packet is created and is sent",
+                   MakeTraceSourceAccessor (&G711Generator::m_txTrace))
+  ;
+  return tid;
+}
+
+
 
 G711Generator::G711Generator ()
 {
-	tbPkts = 0.02; //Por defecto son 50 pps
-	sizePkt = 172; //Payload+RTP
-	num_pkts = 0;
+    tbPkts = 0.02; //Por defecto son 50 pps
+    sizePkt = 172; //Payload+RTP
+    num_pkts = 0;
  
-	std::cout << "ESTA VERSION DE G711 NO SE PUEDE ENTREGAR. Falta revisar: \n - Comentarios \n - Longitud de lineas y tabulación \n - \"cout's\" \n - num_pkts y demás debugueo." << std::endl;
+    NS_LOG_WARN("ESTA VERSION DE G711 NO SE PUEDE ENTREGAR. Falta revisar: \n - Comentarios \n - Longitud de lineas y tabulación \n - num_pkts y demás debugueo." );
+
+}
+
+
+
+
+void G711Generator::StartApplication (void) {
+    NS_LOG_FUNCTION(this);
+
+    // NS_LOG_INFO("Un nuevo generador de G711 comienza a transmitir");
+    DoGenerate();
+}
+
+void G711Generator::StopApplication (void){ 
+    // NS_LOG_INFO("Se detiene un generador de G711");
+    NS_LOG_FUNCTION(this);
+    NS_LOG_INFO("Paquetes enviados: " << num_pkts);       
+    Simulator::Cancel(m_next);
 
 }
 
 
 void 
 G711Generator::SetRemote(std::string socketType, 
-						Address remote,  uint16_t port)
+                        Address remote,  uint16_t port)
 {
- 	TypeId tid = TypeId::LookupByName (socketType);
- 	m_socket = Socket::CreateSocket (GetNode (), tid);
- 	int err = m_socket->Bind ();
- 	err += m_socket->ShutdownRecv ();
+
+    TypeId tid = GetTypeId();
+
+    m_socket = Socket::CreateSocket (GetNode (), tid);
+    int err = m_socket->Bind ();
+    err += m_socket->ShutdownRecv ();
     err += m_socket->Connect (InetSocketAddress (Ipv4Address::ConvertFrom(remote), port));
-    
-    std::cout << "Configuración de G711: " << err << std::endl;
-    
+        
     if(err != 0)
-        std::cout << "Fallo de configuración en SetRemote de G711" << std::endl;
+        NS_LOG_ERROR("Fallo de configuración en SetRemote de G711");
  
     
 }
@@ -46,13 +76,13 @@ G711Generator::SetRemote(std::string socketType,
 void 
 G711Generator::SetRate (double rate)
 {
-	tbPkts = 1/rate;
+    tbPkts = 1/rate;
 }
 
 void 
 G711Generator::SetSize (uint32_t size)
 {
-	sizePkt = size;
+    sizePkt = size;
 }
 
 
@@ -65,10 +95,10 @@ G711Generator::DoGenerate (void)
                 
     Ptr<Packet> p = Create<Packet> (sizePkt);
   
-  
+    m_txTrace (p);
     int bytes = m_socket->Send (p) ;
     if(bytes >= 0)
-        std::cout << "Bytes enviados:" << bytes << std::endl;
+        NS_LOG_LOGIC("Bytes enviados: " << bytes);
     else
         num_pkts++;
 }
