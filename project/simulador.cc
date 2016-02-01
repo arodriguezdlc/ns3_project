@@ -14,7 +14,9 @@
 
 #include "Observador.h"
 
+#include "G711GeneratorHelper.h"
 #include "G711Generator.h"
+
 
 using namespace ns3;
 
@@ -29,8 +31,7 @@ int main (int argc, char *argv[])
 	uint32_t responseSize = 10000;
 	Time     delay("5ms");
 
-    uint16_t port = 9;
-
+   
 	//Command line parsing
 	CommandLine cmd;
 	cmd.AddValue ("datarate", "datarate for point to point link", datarate);
@@ -73,16 +74,18 @@ int main (int argc, char *argv[])
 
  
 	//HERE WE HAVE TO INSTALL CLIENT APP
-    G711Generator codec;
-    nodes.Get(1)->AddApplication(&codec);
-    codec.SetRemote("ns3::UdpSocketFactory", serverAddress, port);
+    G711GeneratorHelper g711 ("ns3::UdpSocketFactory", InetSocketAddress (interfaces.GetAddress (1), 9));
+    ApplicationContainer g711App = g711.Install (nodes.Get(0));
+    
+    //nodes.Get(1)->AddApplication(&codec);
+    //codec.SetRemote("ns3::UdpSocketFactory", serverAddress, port);
 	
-	codec.SetStartTime (Seconds (1.0));
-	codec.SetStopTime (Seconds (10));
+	g711App.Start (Seconds (1.0));
+	g711App.Stop (Seconds (10));
 
     //HERE WE HAVE TO INSTALL SERVER APP
-	PacketSinkHelper sink ("ns3::UdpSocketFactory", InetSocketAddress (interfaces.GetAddress (1), port));
-	ApplicationContainer sinkApp = sink.Install (nodes.Get (0));
+	PacketSinkHelper sink ("ns3::UdpSocketFactory", InetSocketAddress (interfaces.GetAddress (1), 9));
+	ApplicationContainer sinkApp = sink.Install (nodes.Get (1));
 	sinkApp.Start (Seconds (1.0));
 	sinkApp.Stop (Seconds (10.0));
  
@@ -93,11 +96,11 @@ int main (int argc, char *argv[])
 	**************************/
 
 	Observador observador;
+	
 	nodes.Get (0) -> GetApplication(0) -> TraceConnectWithoutContext
             ("Rx", MakeCallback(&Observador::Recepcion, &observador));	
     nodes.Get (1) -> GetApplication(0) -> TraceConnectWithoutContext
             ("Rx", MakeCallback(&Observador::Recepcion, &observador));
-  
  
 	nodes.Get (1) -> GetApplication(0) -> TraceConnectWithoutContext
         ("Tx", MakeCallback(&Observador::Envio,  &observador));

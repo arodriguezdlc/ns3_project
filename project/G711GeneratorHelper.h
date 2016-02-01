@@ -16,14 +16,14 @@ namespace ns3 {
 
 /**
  * \ingroup bulksend
- * \brief A helper to make it easier to instantiate an ns3::HttpGeneratorClient
+ * \brief A helper to make it easier to instantiate an ns3::G711Generator
  * on a set of nodes.
  */
 class G711GeneratorHelper
 {
 public:
   /**
-   * Create an G711GeneratorHelper to make it easier to work with HttpGeneratorClient
+   * Create an G711GeneratorHelper to make it easier to work with G711Generator
    *
    * \param protocol the name of the protocol to use to send traffic
    *        by the applications. This string identifies the socket

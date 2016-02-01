@@ -10,7 +10,7 @@ namespace ns3 {
 
 G711GeneratorHelper::G711GeneratorHelper (std::string protocol, Address address)
 {
-  m_factory.SetTypeId ("ns3::G711GeneratorClient");
+  m_factory.SetTypeId ("ns3::G711Generator");
   m_factory.Set ("Protocol", StringValue (protocol));
   m_factory.Set ("Remote", AddressValue (address));
 }
