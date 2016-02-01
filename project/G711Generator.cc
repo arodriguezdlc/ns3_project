@@ -41,6 +41,20 @@ G711Generator::G711Generator ()
 void G711Generator::StartApplication (void) {
     NS_LOG_FUNCTION(this);
 
+
+    TypeId tid = GetTypeId();
+
+    m_socket = Socket::CreateSocket (GetNode (), tid);
+    int err = m_socket->Bind ();
+    err += m_socket->ShutdownRecv ();
+    err += m_socket->Connect (InetSocketAddress (Ipv4Address::ConvertFrom(m_peer), r_port));
+        
+    if(err != 0)
+        NS_LOG_ERROR("Fallo de configuración en SetRemote de G711");
+ 
+
+
+
     // NS_LOG_INFO("Un nuevo generador de G711 comienza a transmitir");
     DoGenerate();
 }
@@ -58,17 +72,9 @@ void
 G711Generator::SetRemote(std::string socketType, 
                         Address remote,  uint16_t port)
 {
-
-    TypeId tid = GetTypeId();
-
-    m_socket = Socket::CreateSocket (GetNode (), tid);
-    int err = m_socket->Bind ();
-    err += m_socket->ShutdownRecv ();
-    err += m_socket->Connect (InetSocketAddress (Ipv4Address::ConvertFrom(remote), port));
-        
-    if(err != 0)
-        NS_LOG_ERROR("Fallo de configuración en SetRemote de G711");
- 
+    r_port = port;
+    m_peer = remote;
+    m_socketType = socketType;
     
 }
 

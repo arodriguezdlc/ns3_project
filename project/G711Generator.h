@@ -35,5 +35,11 @@ private:
   
   uint32_t      num_pkts;
   
+  
+  uint16_t      r_port;
+  Address       m_peer;
+  std::string   m_socketType;
+  
+  
 };
 
