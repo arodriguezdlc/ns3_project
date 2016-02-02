@@ -2,12 +2,13 @@
 
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
-#include "ns3/csma-module.h"
 #include "ns3/internet-module.h"
 #include "ns3/point-to-point-module.h"
 #include "ns3/applications-module.h"
 #include "ns3/ipv4-global-routing-helper.h"
 #include "ns3/ipv4-interface-container.h"
+#include "ns3/wifi-module.h"
+#include "ns3/mobility-module.h"
 
 #include "G711Generator.h"
 #include "G711GeneratorHelper.h"
@@ -30,7 +31,7 @@ int
 main (int argc, char *argv[])
 {
   GlobalValue::Bind("ChecksumEnabled", BooleanValue(true));
-  Time::SetResolution (Time::MS);
+  Time::SetResolution (Time::NS);
 
 
   // Parametros de la simulacion
@@ -62,43 +63,88 @@ main (int argc, char *argv[])
   NodeContainer p2pNodes;
   p2pNodes.Create (2);
 
-  // Nodos frontera entre p2p y csma
-  NodeContainer csmaNodes;
-  csmaNodes.Add (p2pNodes.Get (1));
-  csmaNodes.Add (VoipNodes);
-  csmaNodes.Add (HttpClientNodes);
-
+  // Nodos que pertenecen a la red Wifi
+  NodeContainer wifiStaNodes;
+  wifiStaNodes.Add(VoipNodes);
+  wifiStaNodes.Add(HttpClientNodes);
+  NodeContainer wifiApNode;
+  wifiApNode.Add(p2pNodes.Get(1));
+ 
   // Instalamos el dispositivo en los nodos punto a punto
   PointToPointHelper pointToPoint;
   NetDeviceContainer p2pDevices;
   pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("2Mbps"));
   pointToPoint.SetChannelAttribute ("Delay", StringValue ("2ms"));
   p2pDevices = pointToPoint.Install (p2pNodes);
+ 
+  /* Configuracion para la red Wifi */
+  YansWifiChannelHelper channel = YansWifiChannelHelper::Default ();
+  channel.SetPropagationDelay ("ns3::ConstantSpeedPropagationDelayModel");
+  channel.AddPropagationLoss ("ns3::LogDistancePropagationLossModel", "Exponent", DoubleValue (3.0));
+  YansWifiPhyHelper phy = YansWifiPhyHelper::Default ();
+  phy.SetErrorRateModel ("ns3::NistErrorRateModel");
+  phy.SetChannel (channel.Create ());
+  //phy.Set ("ShortGuardEnabled", BooleanValue (0));
+  
+  WifiHelper wifi = WifiHelper::Default ();
+  //wifi.EnableLogComponents ();
+  wifi.SetStandard (WIFI_PHY_STANDARD_80211g);
+  //wifi.SetStandard (WIFI_PHY_STANDARD_80211n_5GHZ);
+  //wifi.SetRemoteStationManager ("ns3::AarfWifiManager");
 
-  // Instalamos el dispositivo de red en los nodos csma
-  CsmaHelper csma;
-  NetDeviceContainer csmaDevices;
-  csma.SetChannelAttribute ("DataRate", StringValue("100Mbps"));
-  csma.SetChannelAttribute ("Delay", TimeValue (NanoSeconds (6560)));
-  csmaDevices = csma.Install (csmaNodes);
+  //HtWifiMacHelper mac = HtWifiMacHelper::Default ();
+  NqosWifiMacHelper mac = NqosWifiMacHelper::Default();
+
+  Ssid ssid = Ssid ("SSID-project");
+
+  // Configuracion del AP
+
+  mac.SetType ("ns3::ApWifiMac", "Ssid", SsidValue (ssid), "BeaconGeneration", BooleanValue (true), "BeaconInterval", TimeValue (Seconds (5)));  
+  NetDeviceContainer apDevice;
+  apDevice.Add(wifi.Install (phy, mac, wifiApNode));
+
+  MobilityHelper mobilityAp;
+  Ptr<ListPositionAllocator> positionAllocAp = CreateObject<ListPositionAllocator> ();
+ 
+  positionAllocAp->Add (Vector (0.0, 0.0, 0.0));
+  mobilityAp.SetPositionAllocator (positionAllocAp);
+  mobilityAp.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+ 
+  mobilityAp.Install (wifiApNode);
+
+  // Configuracion de los STA
+  mac.SetType ("ns3::StaWifiMac", "Ssid", SsidValue (ssid), "ActiveProbing", BooleanValue (false));
+  NetDeviceContainer staDevices;
+  staDevices.Add(wifi.Install (phy, mac, wifiStaNodes));
+
+  MobilityHelper mobilitySta;
+  Ptr<ListPositionAllocator> positionAllocSta = CreateObject<ListPositionAllocator> ();
+ 
+  positionAllocSta->Add (Vector (0.1, 0.0, 0.0));
+  mobilitySta.SetPositionAllocator (positionAllocSta);
+  mobilitySta.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+ 
+  mobilitySta.Install (wifiStaNodes);
 
   // Instalamos la pila TCP/IP en todos los nodos
   InternetStackHelper stack;
-  stack.Install (p2pNodes.Get (0));
-  stack.Install (csmaNodes);
+  stack.Install (p2pNodes);
+  stack.Install (wifiStaNodes);
 
   // Asignamos direcciones a cada una de las interfaces
   // Utilizamos dos rangos de direcciones diferentes:
   //    - un rango para los dos nodos del enlace
   //      punto a punto
-  //    - un rango para los nodos de la red de área local.
+  //    - un rango para los nodos de la red de área local wifi.
   Ipv4AddressHelper address;
   Ipv4InterfaceContainer p2pInterfaces;
   address.SetBase ("10.1.1.0", "255.255.255.0");
   p2pInterfaces = address.Assign (p2pDevices);
-  Ipv4InterfaceContainer csmaInterfaces;
+  Ipv4InterfaceContainer staNodeInterfaces;
   address.SetBase ("10.1.2.0", "255.255.255.0");
-  csmaInterfaces = address.Assign (csmaDevices);
+  staNodeInterfaces = address.Assign (staDevices);
+  Ipv4InterfaceContainer apNodeInterfaces;
+  apNodeInterfaces = address.Assign (apDevice);
 
   // Calculamos las rutas del escenario. Con este comando, los
   //     nodos de la red de área local definen que para acceder
@@ -121,19 +167,18 @@ main (int argc, char *argv[])
   ApplicationContainer VoIPClientApp = VoIP.Install (VoipNodes);
 
   VoIPClientApp.Start (Seconds (1.0));
-  VoIPClientApp.Stop (Seconds (60.0));
-
+  VoIPClientApp.Stop (Seconds (10.0));
 
   // Servidor a cliente
   ApplicationContainer VoIPServerApp;
   for(uint32_t i = 0 ; i < nVoip ; i++){
-    VoIP.SetAttribute ("Remote",AddressValue(InetSocketAddress (csmaInterfaces.GetAddress (i+1), PORTVOIP)));
+    VoIP.SetAttribute ("Remote",AddressValue(InetSocketAddress (staNodeInterfaces.GetAddress (i), PORTVOIP)));
     VoIPServerApp.Add(VoIP.Install (p2pNodes.Get (0)));
   }
     VoIPServerApp.Start (Seconds (1.0));
-    VoIPServerApp.Stop (Seconds (60.0));
+    VoIPServerApp.Stop (Seconds (10.0));
 
-  sinkapp.Add(sink.Install (VoipNodes));
+    sinkapp.Add(sink.Install (VoipNodes));
   
   /** Instalacion de aplicacion HttpGenerator (cliente y servidor) **/
 
@@ -141,8 +186,8 @@ main (int argc, char *argv[])
   HttpGeneratorClientHelper httpClient ("ns3::TcpSocketFactory", InetSocketAddress (p2pInterfaces.GetAddress (0), PORTHTTP));        
   ApplicationContainer httpClientApp = httpClient.Install (HttpClientNodes);
 
-  httpClientApp.Start (Seconds(1.0));
-  httpClientApp.Stop  (Seconds(60.0)); 
+  httpClientApp.Start (Seconds(0.0));
+  httpClientApp.Stop  (Seconds(10.0)); 
 
   // Servidor Http
   HttpGeneratorServerHelper httpServer ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), PORTHTTP));
@@ -150,7 +195,7 @@ main (int argc, char *argv[])
 
   if (tracing) {
     pointToPoint.EnablePcap ("project", p2pDevices.Get (1));
-    csma.EnablePcap ("project", csmaDevices.Get (0), true);
+    phy.EnablePcap ("project-wifi",staDevices);
   }
 
   /**********************
