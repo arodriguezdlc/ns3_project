@@ -18,9 +18,11 @@
 #include "HttpGeneratorServerHelper.h"
 #include "HttpGeneratorServer.h"
 
+#include "Observador.h"
+
 #define PORTVOIP 9
 #define PORTHTTP 10
-#define T_SIMULACION 60.0
+#define T_SIMULACION 2.0
 
 
 using namespace ns3;
@@ -37,8 +39,8 @@ main (int argc, char *argv[])
 
   // Parametros de la simulacion
 
-  uint32_t nVoip = 2;
-  uint32_t nHttpClient = 3;
+  uint32_t nVoip = 90;
+  uint32_t nHttpClient = 90;
   bool     tracing = true;
 
 
@@ -199,6 +201,25 @@ main (int argc, char *argv[])
     phy.EnablePcap ("project-wifi",staDevices);
   }
 
+
+
+
+  /**********************
+   * Empieza simulacion *
+   **********************/
+  
+  Observador m_observador;
+  
+  for(uint32_t i = 0; i< nVoip; i++ ){
+    VoipNodes.Get (i) -> GetApplication(0) -> TraceConnectWithoutContext
+          ("Tx", MakeCallback(&Observador::Envio, &m_observador));	
+  }
+  
+  p2pNodes.Get (0) -> GetApplication(0) -> TraceConnectWithoutContext
+          ("Rx", MakeCallback(&Observador::Recepcion,  &m_observador));
+
+	
+
   /**********************
    * Empieza simulacion *
    **********************/
@@ -207,6 +228,11 @@ main (int argc, char *argv[])
   Simulator::Stop (Seconds (T_SIMULACION + 1));
   Simulator::Run ();
   Simulator::Destroy ();
+
+  NS_LOG_INFO ("Tiempo medio entre paquetes: "  << m_observador.getMediaTiempo());
+  NS_LOG_INFO ("Porcentaje de correctos " << m_observador.getTasaCorrectos());
+
+
 
   return 0;
 
