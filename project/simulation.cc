@@ -9,6 +9,7 @@
   #include "ns3/ipv4-interface-container.h"
   #include "ns3/wifi-module.h"
   #include "ns3/mobility-module.h"
+  #include "ns3/random-variable-stream.h"
   
   #include "G711Generator.h"
   #include "G711GeneratorHelper.h"
@@ -39,8 +40,8 @@
   
     // Parametros de la simulacion
   
-    uint32_t nVoip = 20;
-    uint32_t nHttpClient = 20;
+    uint32_t nVoip = 9;
+    uint32_t nHttpClient = 10;
     bool     tracing = true;
   
   
@@ -120,14 +121,35 @@
     NetDeviceContainer staDevices;
     staDevices.Add(wifi.Install (phy, mac, wifiStaNodes));
   
-    MobilityHelper mobilitySta;
-    Ptr<ListPositionAllocator> positionAllocSta = CreateObject<ListPositionAllocator> ();
-   
-    positionAllocSta->Add (Vector (0.1, 0.0, 0.0));
-    mobilitySta.SetPositionAllocator (positionAllocSta);
-    mobilitySta.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
-   
-    mobilitySta.Install (wifiStaNodes);
+    MobilityHelper mobilityStaHttp;
+    Ptr<UniformRandomVariable> xhttp = CreateObject<UniformRandomVariable> ();
+    xhttp->SetAttribute ("Min", DoubleValue (-4));
+    xhttp->SetAttribute ("Max", DoubleValue (4));
+
+    Ptr<UniformRandomVariable> yhttp = CreateObject<UniformRandomVariable> ();
+    yhttp->SetAttribute ("Min", DoubleValue (5));
+    yhttp->SetAttribute ("Max", DoubleValue (13));
+
+    mobilityStaHttp.SetPositionAllocator ("ns3::RandomRectanglePositionAllocator",
+                                   "X", PointerValue (xhttp),
+                                   "Y", PointerValue (yhttp));
+    mobilityStaHttp.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+    mobilityStaHttp.Install (HttpClientNodes);
+
+    MobilityHelper mobilityStaVoip;
+    Ptr<UniformRandomVariable> xvoip = CreateObject<UniformRandomVariable> ();
+    xhttp->SetAttribute ("Min", DoubleValue (-4));
+    xhttp->SetAttribute ("Max", DoubleValue (4));
+
+    Ptr<UniformRandomVariable> yvoip = CreateObject<UniformRandomVariable> ();
+    yhttp->SetAttribute ("Min", DoubleValue (5));
+    yhttp->SetAttribute ("Max", DoubleValue (7));
+
+    mobilityStaVoip.SetPositionAllocator ("ns3::RandomRectanglePositionAllocator",
+                                   "X", PointerValue (xvoip),
+                                   "Y", PointerValue (yvoip));
+    mobilityStaVoip.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+    mobilityStaVoip.Install (VoipNodes);
   
     // Instalamos la pila TCP/IP en todos los nodos
     InternetStackHelper stack;
