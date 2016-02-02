@@ -8,10 +8,9 @@
 #include "ns3/applications-module.h"
 #include "ns3/ipv4-global-routing-helper.h"
 #include "ns3/ipv4-interface-container.h"
-#include "ns3/wifi-module.h"
-#include "ns3/mobility-module.h"
 
 #include "G711Generator.h"
+#include "G711GeneratorHelper.h"
 
 #include "HttpGeneratorClientHelper.h"
 #include "HttpGeneratorClient.h"
@@ -63,78 +62,43 @@ main (int argc, char *argv[])
   NodeContainer p2pNodes;
   p2pNodes.Create (2);
 
-  // Nodos que pertenecen a la red Wifi
-  NodeContainer wifiStaNodes;
-  wifiStaNodes.Add(VoipNodes);
-  wifiStaNodes.Add(HttpClientNodes);
-  NodeContainer wifiApNode;
-  wifiApNode.Add(p2pNodes.Get(1));
- 
+  // Nodos frontera entre p2p y csma
+  NodeContainer csmaNodes;
+  csmaNodes.Add (p2pNodes.Get (1));
+  csmaNodes.Add (VoipNodes);
+  csmaNodes.Add (HttpClientNodes);
+
   // Instalamos el dispositivo en los nodos punto a punto
   PointToPointHelper pointToPoint;
   NetDeviceContainer p2pDevices;
   pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("2Mbps"));
   pointToPoint.SetChannelAttribute ("Delay", StringValue ("2ms"));
   p2pDevices = pointToPoint.Install (p2pNodes);
- 
-  /* Configuracion para la red Wifi */
-  YansWifiChannelHelper channel = YansWifiChannelHelper::Default ();
-  channel.SetPropagationDelay ("ns3::ConstantSpeedPropagationDelayModel");
-  channel.AddPropagationLoss ("ns3::LogDistancePropagationLossModel", "Exponent", DoubleValue (3.0));
-  YansWifiPhyHelper phy = YansWifiPhyHelper::Default ();
-  phy.SetErrorRateModel ("ns3::NistErrorRateModel");
-  phy.SetChannel (channel.Create ());
-  
-  WifiHelper wifi = WifiHelper::Default ();
-  wifi.EnableLogComponents ();
-  wifi.SetStandard (WIFI_PHY_STANDARD_80211g);
-  wifi.SetRemoteStationManager ("ns3::AarfWifiManager");
 
-  NqosWifiMacHelper mac = NqosWifiMacHelper::Default();
-
-  Ssid ssid = Ssid ("SSID-project");
-
-  mac.SetType ("ns3::StaWifiMac", "Ssid", SsidValue (ssid), "ActiveProbing", BooleanValue (false));
-  NetDeviceContainer staDevices;
-  staDevices = wifi.Install (phy, mac, wifiStaNodes);
-
-  mac.SetType ("ns3::ApWifiMac", "Ssid", SsidValue (ssid), "BeaconGeneration", BooleanValue (true), "BeaconInterval", TimeValue (Seconds (5)));  
-  NetDeviceContainer apDevice;
-  apDevice = wifi.Install (phy, mac, wifiApNode);
-
-  // Configuramos la movilidad
-  MobilityHelper mobility;
-  Ptr<ListPositionAllocator> positionAlloc = CreateObject<ListPositionAllocator> ();
- 
-  positionAlloc->Add (Vector (0.0, 0.0, 0.0));
-  positionAlloc->Add (Vector (1.0, 0.0, 0.0));
-  positionAlloc->Add (Vector (1.0, 0.0, 0.0));
-  mobility.SetPositionAllocator (positionAlloc);
- 
-  mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
- 
-  mobility.Install (wifiApNode);
-  mobility.Install (wifiStaNodes);
+  // Instalamos el dispositivo de red en los nodos csma
+  CsmaHelper csma;
+  NetDeviceContainer csmaDevices;
+  csma.SetChannelAttribute ("DataRate", StringValue("100Mbps"));
+  csma.SetChannelAttribute ("Delay", TimeValue (NanoSeconds (6560)));
+  csmaDevices = csma.Install (csmaNodes);
 
   // Instalamos la pila TCP/IP en todos los nodos
   InternetStackHelper stack;
-  stack.Install (p2pNodes);
-  stack.Install (wifiStaNodes);
+  stack.Install (p2pNodes.Get (0));
+  stack.Install (csmaNodes);
 
   // Asignamos direcciones a cada una de las interfaces
   // Utilizamos dos rangos de direcciones diferentes:
   //    - un rango para los dos nodos del enlace
   //      punto a punto
-  //    - un rango para los nodos de la red de área local wifi.
+  //    - un rango para los nodos de la red de área local.
   Ipv4AddressHelper address;
   Ipv4InterfaceContainer p2pInterfaces;
   address.SetBase ("10.1.1.0", "255.255.255.0");
   p2pInterfaces = address.Assign (p2pDevices);
-  Ipv4InterfaceContainer staNodeInterfaces;
+  Ipv4InterfaceContainer csmaInterfaces;
   address.SetBase ("10.1.2.0", "255.255.255.0");
-  staNodeInterfaces = address.Assign (staDevices);
-  Ipv4InterfaceContainer apNodeInterfaces;
-  apNodeInterfaces = address.Assign (apDevice);
+  csmaInterfaces = address.Assign (csmaDevices);
 
   // Calculamos las rutas del escenario. Con este comando, los
   //     nodos de la red de área local definen que para acceder
@@ -152,22 +116,22 @@ main (int argc, char *argv[])
   PacketSinkHelper sink ("ns3::UdpSocketFactory", Address (InetSocketAddress (Ipv4Address::GetAny (), PORTVOIP))); //sumidero udp en el nodo p2p para todo lo que vaya a su ip y a ese puerto
   ApplicationContainer sinkapp = sink.Install (p2pNodes.Get (0));
 
-  G711Generator VoIPappClient[nVoip];
-  for(uint32_t i = 0 ; i < nVoip ; i++){
-    VoipNodes.Get(i)->AddApplication(&VoIPappClient[i]);
-    VoIPappClient[i].SetRemote("ns3::UdpSocketFactory", p2pInterfaces.GetAddress (0), PORTVOIP); //aplicacion Voip que envia a la ip del nodo p2p y por un puerto.
-    VoIPappClient[i].SetStartTime (Seconds (1.0));
-    VoIPappClient[i].SetStopTime (Seconds (60.0));
-  }
+  G711GeneratorHelper VoIP ("ns3::UdpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), PORTVOIP));
+  VoIP.SetAttribute ("Remote",AddressValue(InetSocketAddress (p2pInterfaces.GetAddress (0), PORTVOIP)));
+  ApplicationContainer VoIPClientApp = VoIP.Install (VoipNodes);
+
+  VoIPClientApp.Start (Seconds (1.0));
+  VoIPClientApp.Stop (Seconds (60.0));
+
 
   // Servidor a cliente
-  G711Generator VoIPappServer[nVoip];
+  ApplicationContainer VoIPServerApp;
   for(uint32_t i = 0 ; i < nVoip ; i++){
-    p2pNodes.Get (0)->AddApplication(&VoIPappServer[i]);
-    VoIPappServer[i].SetRemote("ns3::UdpSocketFactory", staNodeInterfaces.GetAddress (i), PORTVOIP); //aplicacion Voip que envia a la ip del nodo p2p y por un puerto.
-    VoIPappServer[i].SetStartTime (Seconds (1.0));
-    VoIPappServer[i].SetStopTime (Seconds (60.0));
+    VoIP.SetAttribute ("Remote",AddressValue(InetSocketAddress (csmaInterfaces.GetAddress (i+1), PORTVOIP)));
+    VoIPServerApp.Add(VoIP.Install (p2pNodes.Get (0)));
   }
+    VoIPServerApp.Start (Seconds (1.0));
+    VoIPServerApp.Stop (Seconds (60.0));
 
   sinkapp.Add(sink.Install (VoipNodes));
   
@@ -186,7 +150,7 @@ main (int argc, char *argv[])
 
   if (tracing) {
     pointToPoint.EnablePcap ("project", p2pDevices.Get (1));
-    phy.EnablePcap ("project-wifi",staDevices);
+    csma.EnablePcap ("project", csmaDevices.Get (0), true);
   }
 
   /**********************
