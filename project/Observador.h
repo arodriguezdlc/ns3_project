@@ -18,15 +18,23 @@ public:
   double   getMediaTiempo();
   double   getTasaCorrectos();  
   uint32_t getPaquetesPerdidos();
+  double getRFactor();
+ 
+ 
  
 private:
    
   Time        t_inicio;
   uint64_t    enviados;
   uint64_t    recibidos;
+  double      rFactor; 
+  
+  
   std::map<uint64_t, Time>            lista_paquetes;
   std::map<uint64_t, Time>::iterator  search;
  
   Average<double> acumulaTiempo;
+  
+  uint32_t prevtime;
   
 };
