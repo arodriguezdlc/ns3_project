@@ -20,6 +20,7 @@
 
 #define PORTVOIP 9
 #define PORTHTTP 10
+#define T_SIMULACION 60.0
 
 
 using namespace ns3;
@@ -140,11 +141,11 @@ main (int argc, char *argv[])
   Ipv4InterfaceContainer p2pInterfaces;
   address.SetBase ("10.1.1.0", "255.255.255.0");
   p2pInterfaces = address.Assign (p2pDevices);
+  Ipv4InterfaceContainer apNodeInterfaces;
   Ipv4InterfaceContainer staNodeInterfaces;
   address.SetBase ("10.1.2.0", "255.255.255.0");
-  staNodeInterfaces = address.Assign (staDevices);
-  Ipv4InterfaceContainer apNodeInterfaces;
   apNodeInterfaces = address.Assign (apDevice);
+  staNodeInterfaces = address.Assign (staDevices);
 
   // Calculamos las rutas del escenario. Con este comando, los
   //     nodos de la red de área local definen que para acceder
@@ -167,7 +168,7 @@ main (int argc, char *argv[])
   ApplicationContainer VoIPClientApp = VoIP.Install (VoipNodes);
 
   VoIPClientApp.Start (Seconds (1.0));
-  VoIPClientApp.Stop (Seconds (10.0));
+  VoIPClientApp.Stop (Seconds (T_SIMULACION));
 
   // Servidor a cliente
   ApplicationContainer VoIPServerApp;
@@ -176,7 +177,7 @@ main (int argc, char *argv[])
     VoIPServerApp.Add(VoIP.Install (p2pNodes.Get (0)));
   }
     VoIPServerApp.Start (Seconds (1.0));
-    VoIPServerApp.Stop (Seconds (10.0));
+    VoIPServerApp.Stop (Seconds (T_SIMULACION));
 
     sinkapp.Add(sink.Install (VoipNodes));
   
@@ -186,8 +187,8 @@ main (int argc, char *argv[])
   HttpGeneratorClientHelper httpClient ("ns3::TcpSocketFactory", InetSocketAddress (p2pInterfaces.GetAddress (0), PORTHTTP));        
   ApplicationContainer httpClientApp = httpClient.Install (HttpClientNodes);
 
-  httpClientApp.Start (Seconds(0.0));
-  httpClientApp.Stop  (Seconds(10.0)); 
+  httpClientApp.Start (Seconds(1.0));
+  httpClientApp.Stop  (Seconds(T_SIMULACION)); 
 
   // Servidor Http
   HttpGeneratorServerHelper httpServer ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), PORTHTTP));
@@ -203,6 +204,7 @@ main (int argc, char *argv[])
    **********************/
   
   NS_LOG_INFO ("Voy a simular");
+  Simulator::Stop (Seconds (T_SIMULACION + 1));
   Simulator::Run ();
   Simulator::Destroy ();
 
