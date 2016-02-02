@@ -55,7 +55,7 @@ HttpGeneratorServer::GetTypeId (void)
                    MakeTypeIdAccessor (&HttpGeneratorServer::m_tid),
                    MakeTypeIdChecker ())    
     .AddAttribute ("SendSize", "The amount of data to send each time.",
-                   UintegerValue (512),
+                   UintegerValue (1400),
                    MakeUintegerAccessor (&HttpGeneratorServer::m_sendSize),
                    MakeUintegerChecker<uint32_t> (1))
     .AddAttribute ("MaxBytes",
@@ -63,7 +63,7 @@ HttpGeneratorServer::GetTypeId (void)
                    "Once these bytes are sent, "
                    "no data  is sent again. The value zero means "
                    "that there is no limit.",
-                   UintegerValue (10000),
+                   UintegerValue (2262000),
                    MakeUintegerAccessor (&HttpGeneratorServer::m_maxBytes),
                    MakeUintegerChecker<uint32_t> ())
     .AddTraceSource ("Rx", "A packet has been received",

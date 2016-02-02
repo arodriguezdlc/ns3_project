@@ -38,7 +38,7 @@ HttpGeneratorClient::GetTypeId (void)
                    "Once these bytes are sent, "
                    "no data  is sent again. The value zero means "
                    "that there is no limit.",
-                   UintegerValue (1000),
+                   UintegerValue (750),
                    MakeUintegerAccessor (&HttpGeneratorClient::m_maxBytes),
                    MakeUintegerChecker<uint32_t> ())
     .AddAttribute ("Protocol", "The type of protocol to use.",
@@ -46,7 +46,7 @@ HttpGeneratorClient::GetTypeId (void)
                    MakeTypeIdAccessor (&HttpGeneratorClient::m_tid),
                    MakeTypeIdChecker ())
     .AddAttribute ("TimeBetweenRequests", "Mean time between HTTP requests (in seconds).",
-                   DoubleValue (5),
+                   DoubleValue (15),
                    MakeDoubleAccessor (&HttpGeneratorClient::m_timeBetweenRequests),
                    MakeDoubleChecker<double> ())
     .AddTraceSource ("Tx", "A new packet is created and is sent",
