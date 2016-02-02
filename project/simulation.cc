@@ -217,6 +217,9 @@
     // Servidor Http
     HttpGeneratorServerHelper httpServer ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), PORTHTTP));
     ApplicationContainer httpServerApp = httpServer.Install (p2pNodes.Get (0));
+
+    httpServerApp.Start (Seconds(0.0));
+    httpServerApp.Stop  (Seconds(T_SIMULACION));
   
   //  if (tracing) {
       //pointToPoint.EnablePcap ("project", p2pDevices.Get (1));
