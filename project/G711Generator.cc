@@ -109,7 +109,7 @@ void G711Generator::StopApplication (void){
 
 }
 
-/*
+/* Eliminado, se configura en startaplication gracias al helper
 void 
 G711Generator::SetRemote(std::string socketType, 
                         Address remote,  uint16_t port)
