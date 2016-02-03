@@ -361,7 +361,7 @@ simulacion (uint32_t nVoip, uint32_t nHttpClient, bool tracing, double* retardo_
   for(uint32_t i = 0; i< nVoip; i++ ){
     VoipNodes.Get (i) -> GetApplication(0) -> TraceConnectWithoutContext
       ("Tx", MakeCallback(&Observador::Envio, &m_observador));	
-    VoipNodes.Get (i) -> GetApplication(0) -> TraceConnectWithoutContext
+    VoipNodes.Get (i) -> GetApplication(1) -> TraceConnectWithoutContext
       ("Rx", MakeCallback(&Observador::Recepcion, &m_observador)); 
   }
   

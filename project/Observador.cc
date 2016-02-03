@@ -14,25 +14,29 @@ Observador::Observador ()
 }
 
 
-
-/*********************** Funciones para media de tiempo ***********************/
+//Callback que se lanza al enviarse un paquete de las aplicaciones G711
 void 
 Observador::Envio(Ptr <const Packet> paquete){
+
+  //Metemos el paquete en una lista
   lista_paquetes[paquete -> GetUid()] = Simulator::Now();
-  NS_LOG_INFO ("Paquete " << paquete -> GetUid()  << " enviado.");
   enviados++;
+
+  NS_LOG_INFO ("Paquete " << paquete -> GetUid()  << " enviado.");
+
 }
 
-
+//Callback que se lanza al recibirse paquetes
 void 
 Observador::Recepcion(Ptr <const Packet> paquete,  const Address &dir){
   
   search = lista_paquetes.find(paquete -> GetUid());
-  
+  //Si el paquete recibido está en la lista
   if(search != lista_paquetes.end()) {
-    //Si se encuentra el paquete (debería ser siempre)
+    //aumentamos el número de paquetes recibidos correctamente
     recibidos++;
-    //Actualizar el acumulador
+    
+    //Actualizar el acumulador de tiempos de recepcion
     acumulaTiempo.Update(Simulator::Now().GetMicroSeconds() - 
                         search->second.GetMicroSeconds());
     
@@ -77,7 +81,7 @@ Observador::getPaquetesPerdidos(){
 }
 double
 Observador::getRFactor(){
-  //Facor R según el anexo 1 de la documentación http://www.nit.eu/czasopisma/JTIT/2002/2/53.pdf
+  //Facor R según el anexo 2 de voip de la memoria http://www.nit.eu/czasopisma/JTIT/2002/2/53.pdf
   //R = 92.68 − Id − Ie
   //Id = 0.65 + (0.1*Ta - 15.93) * delta(Ta-165) ;
   //Ta = Tenc + Tp + Tdec + Tn ; 
