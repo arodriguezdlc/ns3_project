@@ -23,9 +23,9 @@
 
 #define PORTVOIP 9
 #define PORTHTTP 10
-#define T_SIMULACION 60.0
-#define MUESTRAS 2
-#define TSTUDENT 2.2622
+#define T_SIMULACION 30.0
+#define MUESTRAS 5
+#define TSTUDENT 1.5332
 
 
 using namespace ns3;
@@ -44,7 +44,7 @@ main (int argc, char *argv[])
   // Parametros de la simulacion
 
   uint32_t nVoipMax = 10;
-  uint32_t nVoipMin = 7;
+  uint32_t nVoipMin = 1;
   uint32_t nHttpClientMax = 50;
   uint32_t pasoHttp = 10;
   uint32_t nHttpClient = 0;
@@ -220,7 +220,6 @@ simulacion (uint32_t nVoip, uint32_t nHttpClient, bool tracing, double* retardo_
   WifiHelper wifi = WifiHelper::Default ();
 
   wifi.SetStandard (WIFI_PHY_STANDARD_80211g);
-  wifi.SetRemoteStationManager ("ns3::ConstantRateWifiManager","DataMode", StringValue("DsssRate11Mbps"), "ControlMode", StringValue("DsssRate11Mbps"));
 
   NqosWifiMacHelper mac = NqosWifiMacHelper::Default();
   
