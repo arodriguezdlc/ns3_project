@@ -23,7 +23,7 @@
 
 #define PORTVOIP 9
 #define PORTHTTP 10
-#define T_SIMULACION 15.0
+#define T_SIMULACION 30.0
 #define MUESTRAS 2
 #define TSTUDENT 2.2622
 
@@ -43,9 +43,11 @@ main (int argc, char *argv[])
 
   // Parametros de la simulacion
 
-  uint32_t nVoipMax = 10;
-  uint32_t nHttpClientMax = 12;
-  uint32_t pasoHttp = 3;
+ 
+  uint32_t nVoipMax = 11;
+  uint32_t nVoipMin = 6;
+  uint32_t nHttpClientMax = 50;
+  uint32_t pasoHttp = 20;
   uint32_t nHttpClient = 0;
   bool     tracing = false;
   Average<double> a_retardo;
@@ -83,7 +85,7 @@ main (int argc, char *argv[])
 
   uint32_t curvas = nHttpClientMax/pasoHttp;
   
-  for (uint32_t k = 1 ; k <= curvas  ; k++) {
+  for (uint32_t k = 0 ; k < curvas  ; k++) {
     NS_LOG_INFO("**********************************************");
     NS_LOG_INFO("* Comienzan las simulaciones para la curva "<<k<<" *");
     NS_LOG_INFO("**********************************************");
@@ -109,7 +111,7 @@ main (int argc, char *argv[])
     dataset_fr.SetErrorBars (Gnuplot2dDataset::Y);
     dataset_fr.SetTitle (rotulo.str ());
 
-    for (uint32_t j = 1 ; j <= nVoipMax ; j++) {
+    for (uint32_t j = nVoipMin ; j <= nVoipMax ; j++) {
       NS_LOG_INFO("*** Simulaciones con " << j << " nodos VoIP ***");
       // Reseteamos acumuladores
       a_retardo.Reset();
@@ -359,11 +361,14 @@ simulacion (uint32_t nVoip, uint32_t nHttpClient, bool tracing, double* retardo_
   for(uint32_t i = 0; i< nVoip; i++ ){
     VoipNodes.Get (i) -> GetApplication(0) -> TraceConnectWithoutContext
       ("Tx", MakeCallback(&Observador::Envio, &m_observador));	
+    VoipNodes.Get (i) -> GetApplication(0) -> TraceConnectWithoutContext
+      ("Rx", MakeCallback(&Observador::Recepcion, &m_observador)); 
   }
   
   p2pNodes.Get (0) -> GetApplication(0) -> TraceConnectWithoutContext
     ("Rx", MakeCallback(&Observador::Recepcion,  &m_observador));
-  
+  p2pNodes.Get (0) -> GetApplication(0) -> TraceConnectWithoutContext
+    ("Tx", MakeCallback(&Observador::Envio,  &m_observador));
   
   
   /**********************
