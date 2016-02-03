@@ -20,7 +20,6 @@ public:
   double 	getRFactor();
  
 
- 
 private:
    
   uint64_t    enviados;

@@ -19,6 +19,8 @@ using namespace ns3;
 
 NS_OBJECT_ENSURE_REGISTERED (G711Generator);
 
+
+//Método para adecuarse al standard de API's de helpers
 TypeId
 G711Generator::GetTypeId (void)
 {
