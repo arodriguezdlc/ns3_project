@@ -32,6 +32,7 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE ("simulation");
 
+//Funcion donde se crea y se simula el escenario propuesto
 void simulacion (uint32_t nVoip, uint32_t nHttpClient, bool tracing, double* retardo_medio, double* porcentaje_correctos, double* factor_R);
 
 int
@@ -44,13 +45,13 @@ main (int argc, char *argv[])
   // Parametros de la simulacion
 
  
-  uint32_t nVoipMax = 11;
-  uint32_t nVoipMin = 6;
-  uint32_t nHttpClientMax = 50;
-  uint32_t pasoHttp = 20;
+  uint32_t nVoipMax = 11; //Numero maximo de nodos Voip a simular
+  uint32_t nVoipMin = 6; //Numero de nodos Voip por el que se empieza a simular
+  uint32_t nHttpClientMax = 50; //Numero de nodos Http maximo a simular
+  uint32_t pasoHttp = 20; //Aumento de los nodos Http en cada curva
   uint32_t nHttpClient = 0;
-  bool     tracing = false;
-  Average<double> a_retardo;
+  bool     tracing = false; //habilita pcaps
+  Average<double> a_retardo; 
   Average<double> a_correctos;
   Average<double> a_fr;
   double retardo_medio = 0;
