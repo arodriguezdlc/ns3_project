@@ -23,7 +23,7 @@
 
 #define PORTVOIP 9
 #define PORTHTTP 10
-#define T_SIMULACION 15.0
+#define T_SIMULACION 60.0
 #define MUESTRAS 2
 #define TSTUDENT 2.2622
 
@@ -44,8 +44,9 @@ main (int argc, char *argv[])
   // Parametros de la simulacion
 
   uint32_t nVoipMax = 10;
-  uint32_t nHttpClientMax = 12;
-  uint32_t pasoHttp = 3;
+  uint32_t nVoipMin = 7;
+  uint32_t nHttpClientMax = 50;
+  uint32_t pasoHttp = 10;
   uint32_t nHttpClient = 0;
   bool     tracing = false;
   Average<double> a_retardo;
@@ -58,8 +59,10 @@ main (int argc, char *argv[])
   // Preparar los parametros
 
   CommandLine cmd;
-  cmd.AddValue ("Voip", "Número maximo de nodos VoIP", nVoipMax);
-  cmd.AddValue ("HttpClient", "Número maximo de nodos cliente HTTP", nHttpClientMax);
+  cmd.AddValue ("VoipMax", "Número maximo de nodos VoIP", nVoipMax);
+  cmd.AddValue ("VoipMin", "Número minimo de nodos VoIP", nVoipMin);
+  cmd.AddValue ("pasoHttp", "Incremento de nodos HTTP", pasoHttp);
+  cmd.AddValue ("HttpClientMax", "Número maximo de nodos cliente HTTP", nHttpClientMax);
   cmd.AddValue ("tracing", "flag to enable/disable pcap tracing", tracing);
   cmd.Parse (argc,argv);
 
@@ -84,11 +87,12 @@ main (int argc, char *argv[])
   uint32_t curvas = nHttpClientMax/pasoHttp;
   
   for (uint32_t k = 1 ; k <= curvas  ; k++) {
-    NS_LOG_INFO("**********************************************");
-    NS_LOG_INFO("* Comienzan las simulaciones para la curva "<<k<<" *");
-    NS_LOG_INFO("**********************************************");
 
     nHttpClient = nHttpClient + k * pasoHttp;
+
+    NS_LOG_INFO("**************************************************");
+    NS_LOG_INFO("* Comienzan las simulaciones para "<< nHttpClient <<" nodos Http *");
+    NS_LOG_INFO("**************************************************");
 
     std::ostringstream rotulo;
     rotulo << "Simulacion con " << nHttpClient << " clientes Http";
@@ -109,7 +113,7 @@ main (int argc, char *argv[])
     dataset_fr.SetErrorBars (Gnuplot2dDataset::Y);
     dataset_fr.SetTitle (rotulo.str ());
 
-    for (uint32_t j = 1 ; j <= nVoipMax ; j++) {
+    for (uint32_t j = nVoipMin ; j <= nVoipMax ; j++) {
       NS_LOG_INFO("*** Simulaciones con " << j << " nodos VoIP ***");
       // Reseteamos acumuladores
       a_retardo.Reset();
@@ -117,7 +121,7 @@ main (int argc, char *argv[])
       a_fr.Reset();
 
       for (uint32_t i = 0 ; i < MUESTRAS ; i++) {
-        NS_LOG_INFO("Simulacion de la muestra numero " << i+1);
+        NS_LOG_INFO("Simulacion de la muestra numero " << i+1 << "...");
         // Iniciamos simulacion
         simulacion (j, nHttpClient, tracing, &retardo_medio, &porcentaje_correctos, &factor_R);
         // Actualizamos datos
@@ -202,8 +206,9 @@ simulacion (uint32_t nVoip, uint32_t nHttpClient, bool tracing, double* retardo_
   NetDeviceContainer p2pDevices;
   pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("2Mbps"));
   pointToPoint.SetChannelAttribute ("Delay", StringValue ("2ms"));
+  //pointToPoint.SetQueue ("ns3::DropTailQueue"); // Configuramos cola
   p2pDevices = pointToPoint.Install (p2pNodes);
-  
+    
   /* Configuracion para la red Wifi */
   YansWifiChannelHelper channel = YansWifiChannelHelper::Default ();
   channel.SetPropagationDelay ("ns3::ConstantSpeedPropagationDelayModel");
@@ -211,15 +216,12 @@ simulacion (uint32_t nVoip, uint32_t nHttpClient, bool tracing, double* retardo_
   YansWifiPhyHelper phy = YansWifiPhyHelper::Default ();
   phy.SetErrorRateModel ("ns3::NistErrorRateModel");
   phy.SetChannel (channel.Create ());
-  //phy.Set ("ShortGuardEnabled", BooleanValue (0));
   
   WifiHelper wifi = WifiHelper::Default ();
-  //wifi.EnableLogComponents ();
+
   wifi.SetStandard (WIFI_PHY_STANDARD_80211g);
-  //wifi.SetStandard (WIFI_PHY_STANDARD_80211n_5GHZ);
-  //wifi.SetRemoteStationManager ("ns3::AarfWifiManager");
-  
-  //HtWifiMacHelper mac = HtWifiMacHelper::Default ();
+  wifi.SetRemoteStationManager ("ns3::ConstantRateWifiManager","DataMode", StringValue("DsssRate11Mbps"), "ControlMode", StringValue("DsssRate11Mbps"));
+
   NqosWifiMacHelper mac = NqosWifiMacHelper::Default();
   
   Ssid ssid = Ssid ("SSID-project");
@@ -370,7 +372,6 @@ simulacion (uint32_t nVoip, uint32_t nHttpClient, bool tracing, double* retardo_
    * Empieza simulacion *
    **********************/
   
-  NS_LOG_INFO ("Voy a simular");
   Simulator::Stop (Seconds (T_SIMULACION + 1));
   Simulator::Run ();
   Simulator::Destroy ();
